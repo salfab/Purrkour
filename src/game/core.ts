@@ -1,6 +1,6 @@
 /** Pure, deterministic Purrkour gameplay. No browser or Three.js dependencies. */
 import {segmentPlan,patternHasCrate,safeLaneX} from './gameplayDirector';
-import {ROUTE_FORK,routeFromWorldX,activeRoute,forkStage,type RouteChoice,type RouteStage} from './routeChoices';
+import {ROUTE_FORK,routeFromWorldX,activeRoute,type RouteChoice,type RouteStage} from './routeChoices';
 export const WORLD = {
   trackWidth: 5,
   segmentLength: 100,
