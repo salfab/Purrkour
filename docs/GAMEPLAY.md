@@ -190,3 +190,15 @@ Avant de produire plus de mécaniques :
 - La simulation reste exprimée en distance parcourue et largeur de piste locale. Aucun graphe ni collision sur la branche non choisie.
 - La zone jusqu'au retour vers le tronc commun est volontairement sans fossé pour protéger les virages.
 - **À valider sur téléphone :** raccords entre portions de bordures, lisibilité des portails, apparition visuelle de l'autre branche et fluidité de caméra.
+
+### Animation du personnage au centre (v0.12)
+
+Le chat utilise désormais deux orientations de sprite :
+
+- **Centre** (`|x| < 0,48`) : animation arrière dédiée à **4 poses transparentes**, dessinée sur Canvas au chargement du jeu pour limiter le poids mobile.
+- **Côtés** : atlas kawaii original à 8 poses, inversé horizontalement du côté droit.
+- La caméra suit les virages géométriques tandis que le sprite reste lisible en billboard.
+
+La version Canvas des poses arrière est un **premier jeu de sprites fonctionnel**. Le spritesheet illustré haute fidélité pourra remplacer ce rendu sans modifier la logique de sélection d'orientation.
+
+Tests automatiques disponibles dans `tests/routeGeometry.test.ts` et `tests/routeFork.test.ts`.
