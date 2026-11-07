@@ -2,11 +2,27 @@ import {describe,it,expect} from 'vitest';
 import {
   ROUTE_CURVE,ROUTE_DETOUR_END,FAKE_MERGE,
   routePose,routePoint,fakeMergePose,fakeMergePoint,alternativeBranch,turnFraming,
+  ROUTE_PREVIEW_END,branchRoadEdges,
 } from '../src/game/routeGeometry';
 import {ROUTE_FORK} from '../src/game/routeChoices';
 import {isGap} from '../src/game/core';
 
 describe('short lateral detour and fake 45-degree merge',()=>{
+  it('keeps one 288m stitch boundary and non-overlapping Y halves',()=>{
+    expect(ROUTE_PREVIEW_END).toBe(288);
+    expect(ROUTE_PREVIEW_END).toBeGreaterThan(ROUTE_DETOUR_END);
+    for(const distance of [250,252,260,270,ROUTE_DETOUR_END,288]){
+      const fish=branchRoadEdges(distance,'fish');
+      const acro=branchRoadEdges(distance,'acro');
+      expect(fish.min).toBeCloseTo(-acro.max,6);
+      expect(fish.max).toBeCloseTo(-acro.min,6);
+      expect(fish.min).toBeLessThanOrEqual(fish.max);
+      expect(acro.min).toBeLessThanOrEqual(acro.max);
+    }
+    expect(branchRoadEdges(250,'fish')).toEqual({min:0,max:2.5});
+    expect(branchRoadEdges(250,'acro')).toEqual({min:-2.5,max:0});
+    expect(branchRoadEdges(ROUTE_PREVIEW_END,'fish')).toEqual({min:-2.5,max:2.5});
+  });
   it('starts smoothly at the original split position',()=>{
     for(const branch of ['fish','acro'] as const){
       expect(routePose(ROUTE_FORK.chooseZ,branch)).toEqual({x:0,z:250,yaw:0});

@@ -26,6 +26,35 @@ export const ROUTE_CURVE={
 
 const halfArc=ROUTE_CURVE.radius*ROUTE_CURVE.maximumAngle;
 export const ROUTE_DETOUR_END=ROUTE_CURVE.split+halfArc*2;
+/**
+ * The fork preview owns the pavement until the very next 12-m chunk boundary
+ * after the detour: no abrupt swap of meshes during the first bend.
+ */
+export const ROUTE_PREVIEW_END=288;
+
+/**
+ * In the fork, each branch starts as HALF the common road and smoothly opens
+ * to the full width. The two halves share only an edge, not overlapping faces.
+ */
+export function branchRoadEdges(distance:number,choice:RouteChoice,halfWidth=2.5):{min:number;max:number}{
+  const t=Math.max(0,Math.min(1,(distance-ROUTE_CURVE.split)/(ROUTE_DETOUR_END-ROUTE_CURVE.split)));
+  const open=t*t*(3-2*t);
+  return choice==='fish'
+    ? {min:-halfWidth*open,max:halfWidth}
+    : {min:-halfWidth,max:halfWidth*open};
+}
+
+/** Physical steering envelope: cannot cross into the unchosen lane at the fork. */
+export function branchSteeringBounds(
+  distance:number,
+  choice:RouteChoice|null,
+  halfWidth=2.5,
+  margin=.25,
+):{min:number;max:number}{
+  if(choice===null||distance>=ROUTE_DETOUR_END)return {min:-halfWidth+margin,max:halfWidth-margin};
+  const edges=branchRoadEdges(distance,choice,halfWidth);
+  return {min:edges.min+margin,max:edges.max-margin};
+}
 const theta=ROUTE_CURVE.maximumAngle;
 const radius=ROUTE_CURVE.radius;
 const deltaX=2*radius*(1-Math.cos(theta));

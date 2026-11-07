@@ -1,11 +1,34 @@
 import {describe,it,expect} from 'vitest';
 import {ROUTE_FORK,routeFromWorldX,activeRoute,forkStage,turnEnvelope} from '../src/game/routeChoices';
 import {segmentPlan} from '../src/game/gameplayDirector';
-import {makePlayer,simulate,isGap,cratesNear,pickupsNear,groundHeight,type Controls} from '../src/game/core';
+import {makePlayer,simulate,isGap,cratesNear,pickupsNear,groundHeight,WORLD,type Controls} from '../src/game/core';
+import {branchSteeringBounds,ROUTE_PREVIEW_END,ROUTE_DETOUR_END} from '../src/game/routeGeometry';
 
 const noSteer=():Controls=>({targetX:null,left:false,right:false,jump:false});
 
 describe('first two-way route fork',()=>{
+  it('locks steering to the chosen half of the Y until the two branches separate',()=>{
+    for(const choice of ['fish','acro'] as const){
+      const player=makePlayer(12);
+      player.routeChoice=choice;
+      player.routeChosenAt=0;
+      player.z=ROUTE_FORK.chooseZ+.01;
+      player.x=choice==='fish'?1.5:-1.5;
+      const controls:Controls={targetX:choice==='fish'?-2.25:2.25,left:false,right:false,jump:false};
+      for(let step=0;step<65;step++){
+        simulate(player,controls,new Set(),1/120);
+        const envelope=branchSteeringBounds(player.z,choice,WORLD.trackWidth/2);
+        expect(player.x).toBeGreaterThanOrEqual(envelope.min-.0001);
+        expect(player.x).toBeLessThanOrEqual(envelope.max+.0001);
+        expect(player.routeChoice).toBe(choice);
+      }
+      expect(player.z).toBeLessThan(ROUTE_DETOUR_END);
+    }
+  });
+  it('does not collect invisible rewards under the transition mesh',()=>{
+    const hidden=pickupsNear(240,300,31,'fish').filter(p=>p.z>=250&&p.z<ROUTE_PREVIEW_END);
+    expect(hidden).toEqual([]);
+  });
   it('uses existing screen orientation, without a tap or a release gesture',()=>{
     expect(routeFromWorldX(1.2)).toBe('fish'); // screen left
     expect(routeFromWorldX(-1.2)).toBe('acro'); // screen right

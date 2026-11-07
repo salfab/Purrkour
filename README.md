@@ -104,3 +104,8 @@ La bifurcation v0.12 à longues courbes a été remplacée par une inflexion en 
 ## Caméra et personnage v0.14
 
 Un cadrage anticipé avant la bifurcation et un lissage indépendant du FPS évitent le brusque recul de caméra au choix de branche. Le chat utilise au centre le spritesheet arrière illustré à quatre poses (`cat_rear_strip.webp`, alpha transparent) et l'atlas latéral existant à gauche/droite, avec UV inversés à gauche. Les sprites Canvas de secours restent disponibles. Voir [GAMEPLAY.md](docs/GAMEPLAY.md).
+
+
+## Raccord continu du Y (v0.15)
+
+La branche sélectionnée est désormais **dessinée en continu** : les deux tronçons courts du Y restent identiques avant/après le choix, puis se raccordent à la piste active au même point (288 m), sans redessiner le sol sous le joueur. Le contrôle est contraint à la voie choisie pendant la séparation, jusqu'à ce que les deux chemins soient visuellement distincts.

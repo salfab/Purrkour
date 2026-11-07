@@ -26,7 +26,7 @@ export class PurrkourGame {
   private readonly scene=new THREE.Scene();
   private readonly backdrop=new ScenicBackdrop();
   private readonly world=new ArtWorld();
-  private readonly fork=new RouteForkView();
+  private readonly fork=new RouteForkView({pavement:this.world.forkPavementMaterial,curb:this.world.forkCurbMaterial});
   private readonly controls: ThumbControls;
   private readonly music:HTMLAudioElement;
   private muted=false;

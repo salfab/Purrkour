@@ -227,3 +227,10 @@ La branche alternative ne correspond pas à une route réellement empruntable : 
 - **Centre :** l'atlas illustré WebP avec quatre poses de course, vraie transparence, est chargé depuis `public/assets/character/cat_rear_strip.webp`. Le chat Canvas n'est conservé que comme secours.
 - **Gauche et droite :** mêmes frames du spritesheet kawaii latéral, avec **UV miroir** à gauche plutôt qu'une échelle X négative qui pourrait perturber le rendu du billboard.
 - La course et les collisions ne sont pas modifiées.
+
+
+## 15. Correctif continuité du Y et contrôle de branche (v0.15)
+
+Le Y n'est plus reconstruit à l'instant du choix. Les deux courtes prévisualisations restent dessinées avec **le même matériau et les mêmes UV** que la piste principale, et elles couvrent désormais l'intégralité du détour jusqu'à la limite exacte de **288 m** (frontière des chunks de 12 m). `ArtWorld` commence la section sélectionnée **à 288 m seulement**. Aucun remplacement brutal du sol n'a lieu sous le chat à 250 m.
+
+Les deux voies commencent comme deux moitiés contiguës de la route commune et s'élargissent graduellement. Après le point de non-retour, `simulate()` limite le déplacement latéral à la partie de la route sélectionnée jusqu'à la fin du S. Le joueur ne peut plus traverser l'autre voie, même s'il garde le pouce à l'opposé. Les collectibles précédemment invisibles sous le Y sont neutralisés. Cette sécurisation est couverte par des tests de simulation.

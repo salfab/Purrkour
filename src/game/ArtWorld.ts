@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { WORLD, cratesNear, groundHeight, isGap, pickupsNear, type Pickup, type Player } from './core';
 import { gapEdgesInRange } from './backdropMath';
 import {ROUTE_FORK,activeRoute,type RouteChoice} from './routeChoices';
-import {routePoint} from './routeGeometry';
+import {routePoint,ROUTE_PREVIEW_END} from './routeGeometry';
 
 function canvasTexture(size: number, paint: (ctx: CanvasRenderingContext2D, size: number) => void): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -250,6 +250,8 @@ export class ArtWorld {
   private readonly chunkLength=12;
   private activeRunSeed=0;
   private activeRoute:RouteChoice|null=null;
+  get forkPavementMaterial():THREE.MeshLambertMaterial{return this.groundMaterial;}
+  get forkCurbMaterial():THREE.MeshLambertMaterial{return this.edgeMaterial;}
   constructor(){
     const tex=(texture:THREE.Texture)=>{this.textures.push(texture);return texture;};
     const mat=(t:THREE.Texture)=>{const m=new THREE.MeshLambertMaterial({map:tex(t),side:THREE.DoubleSide});this.materials.push(m);return m;};
@@ -447,15 +449,21 @@ export class ArtWorld {
   }
   private createChunk(index:number,runSeed:number,route:RouteChoice|null):THREE.Group{
     const from=index*this.chunkLength;const to=from+this.chunkLength;const group=new THREE.Group();
-    // Before choosing a branch, two decorative roads already show the Y.
-    // Do not also draw the original straight track beyond 250m.
-    const visualEnd=route===null?Math.min(to,ROUTE_FORK.chooseZ):to;
-    if(visualEnd<=from)return group;
+    // Exact ownership split: ArtWorld draws the trunk until 250 m and the
+    // active route from 288 m onward. The short Y preview owns 250..288
+    // before AND after the decision, so no geometry changes under the player.
+    const visualStart=from<ROUTE_FORK.chooseZ
+      ? from
+      : Math.max(from,ROUTE_PREVIEW_END);
+    const visualEnd=from<ROUTE_FORK.chooseZ
+      ? Math.min(to,ROUTE_FORK.chooseZ)
+      : route===null?visualStart:to;
+    if(visualStart>=visualEnd)return group;
     const vertices:number[]=[];const uv:number[]=[];
     const terrainVertices:number[]=[];const terrainUv:number[]=[];
     const terrainTop=(z:number)=>groundHeight(z)-1.8;
     const terrainExtent=from>=240&&from<430?9.5:12.5;
-    for(let z=from;z<visualEnd;z+=.5){
+    for(let z=visualStart;z<visualEnd;z+=.5){
       const end=Math.min(z+.5,visualEnd);
       // Side streets are continuous even where the elevated runner has gaps.
       // Their top is aligned with the houses' existing -1.8 m foundation.
@@ -504,14 +512,14 @@ export class ArtWorld {
     }
     // Each lip curves visually down into the lower street rather than ending
     // as a paper-thin horizontal sheet.
-    for(const lip of gapEdgesInRange(from,visualEnd,WORLD.gapStart,WORLD.gapEnd,WORLD.segmentLength)){
+    for(const lip of gapEdgesInRange(visualStart,visualEnd,WORLD.gapStart,WORLD.gapEnd,WORLD.segmentLength)){
       if(lip>=200&&lip<430)continue;
       const floor=groundHeight(lip);
       const depth=1.8;
       this.box(group,0,floor-depth/2,lip,WORLD.trackWidth,depth,.13,this.gapLipMaterial);
       this.box(group,0,floor+.035,lip,WORLD.trackWidth,.07,.17,this.edgeMaterial);
     }
-    for(let z=from;z<visualEnd;z+=2){
+    for(let z=visualStart;z<visualEnd;z+=2){
       if(isGap(z)||isGap(z+1)||isGap(z+2))continue;
       const y=groundHeight(z+1);
       this.box(group,-2.6,y+.11,z+1,.24,.26,2,this.edgeMaterial);
@@ -520,19 +528,19 @@ export class ArtWorld {
       this.box(group,-2.59,y-.88,z+1,.18,1.75,2,this.terraceMaterial);
       this.box(group,2.59,y-.88,z+1,.18,1.75,2,this.terraceMaterial);
     }
-    for(const c of cratesNear(from,visualEnd,runSeed,activeRoute(from+1,route))){
-      if(c.z<from||c.z>=visualEnd)continue;
+    for(const c of cratesNear(visualStart,visualEnd,runSeed,activeRoute(visualStart+1,route))){
+      if(c.z<visualStart||c.z>=visualEnd)continue;
       this.box(group,c.x,groundHeight(c.z)+c.height/2,c.z,c.width,c.height,c.depth,this.crateMaterial);
     }
-    for(const p of pickupsNear(from,visualEnd,runSeed,activeRoute(from+1,route))){
-      if(p.z<from||p.z>=visualEnd)continue;
+    for(const p of pickupsNear(visualStart,visualEnd,runSeed,activeRoute(visualStart+1,route))){
+      if(p.z<visualStart||p.z>=visualEnd)continue;
       const sprite=new THREE.Sprite(this.pickupMaterials[p.kind]);
       const size=p.kind==='sky'?1.15:p.kind==='gold'?.96:p.kind==='boost'?.85:.7;
       sprite.scale.set(size,size,1);
       sprite.position.set(p.x,p.y,p.z);
       group.add(sprite);this.pickups.set(p.id,{sprite,item:p});
     }
-    if(index%3===0&&from+5<visualEnd){
+    if(index%3===0&&from+5>=visualStart&&from+5<visualEnd){
       const left=index%2===0;const sign=left?-1:1;const z=from+5;
       const floor=groundHeight(z),height=5.8+(index%4)*.65;
       this.box(group,sign*7,floor+height/2-1.8,z,3.7,height,12,left?this.wallMaterial:this.peachMaterial);
@@ -582,7 +590,7 @@ export class ArtWorld {
     if(route===this.activeRoute)return;
     this.activeRoute=route;
     for(const [index,chunk] of this.chunks){
-      if((index+1)*this.chunkLength<=ROUTE_FORK.chooseZ)continue;
+      if(index*this.chunkLength<ROUTE_FORK.chooseZ)continue;
       chunk.traverse(obj=>{
         if(obj instanceof THREE.Mesh)obj.geometry.dispose();
         if(obj instanceof THREE.Sprite){

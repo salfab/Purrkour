@@ -2,16 +2,16 @@ import * as THREE from 'three';
 import {groundHeight,WORLD} from './core';
 import {ROUTE_FORK,type RouteChoice} from './routeChoices';
 import {
-  ROUTE_CURVE,ROUTE_DETOUR_END,FAKE_MERGE,
-  routePoint,fakeMergePoint,alternativeBranch,type WorldPoint,
+  ROUTE_CURVE,ROUTE_PREVIEW_END,ROUTE_DETOUR_END,FAKE_MERGE,
+  branchRoadEdges,routePoint,fakeMergePoint,type WorldPoint,
 } from './routeGeometry';
 
 type RoadSampler=(distance:number,lateral:number,height:number)=>WorldPoint;
 
 /**
  * Lightweight optical illusion, not a graph:
- *   - two SHORT approach ribbons while the player chooses;
- *   - only ArtWorld renders the chosen playable road;
+ *   - two stable 38-metre preview branches, including the entire S-bend;
+ *   - ArtWorld renders the playable road only after their shared seam;
  *   - one SHORT 45° slip road appears near the reunion.
  *
  * The old v0.12 rendered hundreds of metres of both tracks for no gameplay
@@ -22,30 +22,17 @@ export class RouteForkView {
   private readonly materials:THREE.Material[]=[];
   private readonly textures:THREE.Texture[]=[];
   private readonly pavement:THREE.MeshLambertMaterial;
+  private readonly previewCurb:THREE.Material;
   private readonly previews:Record<RouteChoice,THREE.Group>;
   private readonly portals:Record<RouteChoice,THREE.Group>;
   private readonly joins:Record<RouteChoice,THREE.Group>;
   private readonly signs=new Map<RouteChoice,THREE.Sprite>();
-  private disposed=false;
 
-  constructor(){
-    this.pavement=new THREE.MeshLambertMaterial({color:'#f0caa9',side:THREE.DoubleSide});
-    this.materials.push(this.pavement);
-    const texture=new THREE.TextureLoader().load(
-      `${import.meta.env.BASE_URL}assets/textures/track_pavers.webp`,
-      loaded=>{
-        if(this.disposed)return;
-        loaded.colorSpace=THREE.SRGBColorSpace;
-        loaded.wrapS=THREE.RepeatWrapping;
-        loaded.wrapT=THREE.RepeatWrapping;
-        this.pavement.map=loaded;
-        this.pavement.needsUpdate=true;
-      },
-      undefined,
-      ()=>console.warn('Purrkour: fork paving fallback'),
-    );
-    texture.colorSpace=THREE.SRGBColorSpace;
-    this.textures.push(texture);
+  constructor(sharedMaterials:{pavement:THREE.MeshLambertMaterial;curb:THREE.Material}){
+    // The same material & UV scale is used by ArtWorld's main track.
+    // We do NOT own or dispose the shared materials.
+    this.pavement=sharedMaterials.pavement;
+    this.previewCurb=sharedMaterials.curb;
     this.previews={
       fish:this.buildPreview('fish'),
       acro:this.buildPreview('acro'),
@@ -77,23 +64,32 @@ export class RouteForkView {
     end:number,
     sampler:RoadSampler,
     withCurbs:boolean,
+    choice:RouteChoice|null=null,
   ):void{
     const vertices:number[]=[];
     const uv:number[]=[];
     const half=WORLD.trackWidth/2;
     for(let s=start;s<end;s+=.45){
       const next=Math.min(end,s+.45);
-      const a=sampler(s,-half,groundHeight(s)-.055);
-      const b=sampler(next,-half,groundHeight(next)-.055);
-      const c=sampler(s,half,groundHeight(s)-.055);
-      const d=sampler(next,half,groundHeight(next)-.055);
+      const left=choice===null?{min:-half,max:half}:branchRoadEdges(s,choice,half);
+      const right=choice===null?{min:-half,max:half}:branchRoadEdges(next,choice,half);
+      const a=sampler(s,left.min,groundHeight(s));
+      const b=sampler(next,right.min,groundHeight(next));
+      const c=sampler(s,left.max,groundHeight(s));
+      const d=sampler(next,right.max,groundHeight(next));
       vertices.push(
         a.x,a.y,a.z,b.x,b.y,b.z,c.x,c.y,c.z,
         b.x,b.y,b.z,d.x,d.y,d.z,c.x,c.y,c.z,
       );
+      // Coordinates match ArtWorld: the image is not restarted at the seam.
+      const u=(x:number):number=>(x+half)*.5;
+      const startLeft=choice===null?-half:branchRoadEdges(s,choice,half).min;
+      const startRight=choice===null?half:branchRoadEdges(s,choice,half).max;
+      const endLeft=choice===null?-half:branchRoadEdges(next,choice,half).min;
+      const endRight=choice===null?half:branchRoadEdges(next,choice,half).max;
       uv.push(
-        0,s*.45,0,next*.45,2.5,s*.45,
-        0,next*.45,2.5,next*.45,2.5,s*.45,
+        u(startLeft),s*.45,u(endLeft),next*.45,u(startRight),s*.45,
+        u(endLeft),next*.45,u(endRight),next*.45,u(startRight),s*.45,
       );
     }
     const geometry=new THREE.BufferGeometry();
@@ -103,11 +99,15 @@ export class RouteForkView {
     group.add(new THREE.Mesh(geometry,this.pavement));
 
     if(!withCurbs)return;
-    const curbMaterial=this.material('#f8d9a9');
-    for(let s=start+1;s<end-1;s+=2.1){
-      for(const lateral of [-half-.1,half+.1]){
+    const curbMaterial=choice===null?this.material('#f8d9a9'):this.previewCurb;
+    // Centers sit on the same 2-metre grid as ArtWorld's bordering chunks.
+    for(let s=start+1;s<end-1;s+=2){
+      const edges=choice===null
+        ? {min:-half,max:half}
+        : branchRoadEdges(s,choice,half);
+      for(const lateral of [edges.min-.1,edges.max+.1]){
         const pos=sampler(s,lateral,groundHeight(s)+.11);
-        const curb=new THREE.Mesh(new THREE.BoxGeometry(.18,.22,2.15),curbMaterial);
+        const curb=new THREE.Mesh(new THREE.BoxGeometry(.24,.26,2),curbMaterial);
         curb.position.set(pos.x,pos.y,pos.z);
         curb.rotation.y=pos.yaw;
         group.add(curb);
@@ -118,10 +118,9 @@ export class RouteForkView {
   private buildPreview(choice:RouteChoice):THREE.Group{
     const preview=new THREE.Group();
     const sampler:RoadSampler=(s,x,y)=>routePoint(s,x,choice,y);
-    // Just 22 metres to make the split readable; the chosen path takes over.
-    this.addRoad(
-      preview,ROUTE_CURVE.split,Math.min(ROUTE_DETOUR_END,272),sampler,true,
-    );
+    // The Y and the entire S-bend are one permanent mesh, all the way to
+    // 288 m. ArtWorld begins exactly at 288, with the same UVs and material.
+    this.addRoad(preview,ROUTE_CURVE.split,ROUTE_PREVIEW_END,sampler,true,choice);
     return preview;
   }
 
@@ -203,12 +202,12 @@ export class RouteForkView {
   }
 
   update(chosen:RouteChoice|null,elapsed:number,distance:number):void{
-    const approaching=distance<ROUTE_DETOUR_END+10;
+    const nearby=distance<ROUTE_PREVIEW_END+24;
     for(const mode of ['fish','acro'] as const){
-      // ArtWorld takes ownership of selected pavement at the choice point;
-      // keep only a very short glimpse of the unchosen dead-end.
-      this.previews[mode].visible=approaching&&(chosen===null||mode===alternativeBranch(chosen));
-      this.portals[mode].visible=distance<275;
+      // Both short previews remain stable through commitment: no mesh swap
+      // at 250 m. The camera leaves them behind before they are hidden.
+      this.previews[mode].visible=nearby;
+      this.portals[mode].visible=distance<ROUTE_PREVIEW_END+12;
     }
     for(const [mode,sign] of this.signs){
       sign.position.y=3.37+Math.sin(elapsed*2.8+(mode==='fish'?0:1))*.05;
@@ -221,7 +220,6 @@ export class RouteForkView {
   }
 
   dispose():void{
-    this.disposed=true;
     this.group.traverse(object=>{
       if(object instanceof THREE.Mesh)object.geometry.dispose();
     });

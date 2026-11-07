@@ -1,6 +1,7 @@
 /** Pure, deterministic Purrkour gameplay. No browser or Three.js dependencies. */
 import {segmentPlan,patternHasCrate,safeLaneX} from './gameplayDirector';
 import {ROUTE_FORK,routeFromWorldX,activeRoute,type RouteChoice,type RouteStage} from './routeChoices';
+import {branchSteeringBounds,ROUTE_PREVIEW_END} from './routeGeometry';
 export const WORLD = {
   trackWidth: 5,
   segmentLength: 100,
@@ -141,7 +142,10 @@ export function pickupsNear(start:number,end:number,runSeed=0,route:RouteChoice|
       fishLine('gap-approach',[1.3,1.3],61.5,1,.45);
     }
   }
-  return result.filter(item=>item.z>=start-2&&item.z<=end+2);
+  return result.filter(item=>
+    item.z>=start-2 && item.z<=end+2 &&
+    !(item.z>=ROUTE_FORK.chooseZ && item.z<ROUTE_PREVIEW_END)
+  );
 }
 export function makePlayer(runSeed=0): Player {
   return { x: 0, y: 0, z: 0, vy: 0, grounded: true, coyote: .1, elapsed: 0,
@@ -175,6 +179,10 @@ export function simulate(player: Player, controls: Controls, collected: Set<stri
     player.routeChoice=routeFromWorldX(player.x);
     player.routeChosenAt=player.elapsed;
   }
+  // Steering stays in the selected branch's narrowing/widening corridor.
+  // The other branch is a visual prop and must never become walkable.
+  const envelope=branchSteeringBounds(player.z,player.routeChoice,WORLD.trackWidth/2);
+  player.x=Math.max(envelope.min,Math.min(envelope.max,player.x));
   const route=activeRoute(player.z,player.routeChoice);
   if (!player.grounded) {
     player.vy -= WORLD.gravity * dt;
