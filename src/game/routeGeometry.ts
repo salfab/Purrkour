@@ -1,112 +1,124 @@
 import type {RouteChoice} from './routeChoices';
 
 /**
- * A reversible, arc-length-parametrized route. No graph or persistent branch
- * meshes are needed: both choices are symmetric functions of progress.
+ * Local runner coordinates remain (lateral, distance).
+ * Only a short S-bend is shown after the choice. The selected route then
+ * continues DEAD STRAIGHT at a lateral offset, so a narrow phone viewport
+ * never has to follow a long, winding racetrack.
  *
- * s=250: fork; first 90° turn (radius 14m)
- * s≈272–306: side street perpendicular to the original runway
- * s≈328–352: short parallel section
- * s≈352–430: approach and return to the shared main road
- * s≈430: the two possible roads have the same position and tangent.
- *
- * X positive = screen LEFT while the camera faces +Z.
+ * The unchosen branch is NOT a second persistent road. A 45-degree decorative
+ * slip road is generated near the reunion and terminates on the chosen route.
  */
 export interface RoutePose {
   readonly x:number;
   readonly z:number;
   readonly yaw:number;
 }
-
 export interface WorldPoint extends RoutePose {
   readonly y:number;
 }
 
-export const ROUTE_CURVE = {
+export const ROUTE_CURVE={
   split:250,
-  radius:14,
-  sideStreet:34,
-  parallelStreet:24,
-  returnStreet:34,
+  radius:18,
+  maximumAngle:Math.PI/4,
 } as const;
 
-const QUARTER_LENGTH=Math.PI*ROUTE_CURVE.radius/2;
-const s0=ROUTE_CURVE.split;
-const s1=s0+QUARTER_LENGTH;
-const s2=s1+ROUTE_CURVE.sideStreet;
-const s3=s2+QUARTER_LENGTH;
-const s4=s3+ROUTE_CURVE.parallelStreet;
-const s5=s4+QUARTER_LENGTH;
-const s6=s5+ROUTE_CURVE.returnStreet;
-const s7=s6+QUARTER_LENGTH;
+const halfArc=ROUTE_CURVE.radius*ROUTE_CURVE.maximumAngle;
+export const ROUTE_DETOUR_END=ROUTE_CURVE.split+halfArc*2;
+const theta=ROUTE_CURVE.maximumAngle;
+const radius=ROUTE_CURVE.radius;
+const deltaX=2*radius*(1-Math.cos(theta));
+const deltaZ=2*radius*Math.sin(theta);
 
-export const ROUTE_JOIN_DISTANCE=s7;
+export const FAKE_MERGE={
+  start:391,
+  end:410,
+  angleRadians:Math.PI/4,
+} as const;
+
+function routeSide(choice:RouteChoice):number {
+  // Camera looks towards +Z: positive world X appears on SCREEN LEFT.
+  return choice==='fish'?1:-1;
+}
 
 export function routePose(distance:number,choice:RouteChoice|null):RoutePose {
   const s=Math.max(0,distance);
-  if(s<=s0 || choice===null)return {x:0,z:s,yaw:0};
-  const direction=choice==='fish'?1:-1;
-  const r=ROUTE_CURVE.radius;
-  if(s<s1){
-    const a=(s-s0)/r;
-    return {x:direction*r*(1-Math.cos(a)),z:s0+r*Math.sin(a),yaw:direction*a};
-  }
-  if(s<s2){
-    return {x:direction*(r+s-s1),z:s0+r,yaw:direction*Math.PI/2};
-  }
-  if(s<s3){
-    const a=(s-s2)/r;
+  if(choice===null||s<=ROUTE_CURVE.split)return {x:0,z:s,yaw:0};
+  const sign=routeSide(choice);
+  const local=s-ROUTE_CURVE.split;
+  if(local<halfArc){
+    const angle=local/radius;
     return {
-      x:direction*(r+ROUTE_CURVE.sideStreet+r*Math.sin(a)),
-      z:s0+r+r*(1-Math.cos(a)),
-      yaw:direction*(Math.PI/2-a),
+      x:sign*radius*(1-Math.cos(angle)),
+      z:ROUTE_CURVE.split+radius*Math.sin(angle),
+      yaw:sign*angle,
     };
   }
-  const xAfterTwoTurns=2*r+ROUTE_CURVE.sideStreet;
-  const zAfterTwoTurns=s0+2*r;
-  if(s<s4){
-    return {x:direction*xAfterTwoTurns,z:zAfterTwoTurns+s-s3,yaw:0};
-  }
-  const zBeforeReturn=zAfterTwoTurns+ROUTE_CURVE.parallelStreet;
-  if(s<s5){
-    const a=(s-s4)/r;
+  if(local<2*halfArc){
+    const angle=(local-halfArc)/radius;
     return {
-      x:direction*(xAfterTwoTurns-r*(1-Math.cos(a))),
-      z:zBeforeReturn+r*Math.sin(a),
-      yaw:-direction*a,
+      x:sign*radius*(1-Math.cos(theta)+Math.cos(theta-angle)-Math.cos(theta)),
+      z:ROUTE_CURVE.split+radius*(2*Math.sin(theta)-Math.sin(theta-angle)),
+      yaw:sign*(theta-angle),
     };
   }
-  const xReturnStart=r+ROUTE_CURVE.sideStreet;
-  if(s<s6){
-    return {
-      x:direction*(xReturnStart-(s-s5)),
-      z:zBeforeReturn+r,
-      yaw:-direction*Math.PI/2,
-    };
-  }
-  if(s<s7){
-    const a=(s-s6)/r;
-    return {
-      x:direction*r*(1-Math.sin(a)),
-      z:zBeforeReturn+r+r*(1-Math.cos(a)),
-      yaw:-direction*(Math.PI/2-a),
-    };
-  }
-  // Both mathematical roads finish at precisely the same place and heading.
-  return {x:0,z:s0+4*r+ROUTE_CURVE.parallelStreet+(s-s7),yaw:0};
+  // After approximately 28 m we are on a completely straight road.
+  return {
+    x:sign*deltaX,
+    z:ROUTE_CURVE.split+deltaZ+s-ROUTE_DETOUR_END,
+    yaw:0,
+  };
 }
 
-/** Rotate the usual local runner coordinates into the actual world. */
 export function routePoint(distance:number,lateral:number,choice:RouteChoice|null,y=0):WorldPoint {
-  const pose=routePose(distance,choice);
+  const center=routePose(distance,choice);
   return {
-    x:pose.x+Math.cos(pose.yaw)*lateral,
+    x:center.x+Math.cos(center.yaw)*lateral,
     y,
-    z:pose.z-Math.sin(pose.yaw)*lateral,
-    yaw:pose.yaw,
+    z:center.z-Math.sin(center.yaw)*lateral,
+    yaw:center.yaw,
   };
 }
 
 export function alternativeBranch(choice:RouteChoice):RouteChoice {
   return choice==='fish'?'acro':'fish';
+}
+
+/**
+ * A short 45-degree fake side street arriving from the UNCHOSEN side.
+ * Only these 19 metres are ever meshed. It ends exactly on our own road.
+ */
+export function fakeMergePose(distance:number,chosen:RouteChoice):RoutePose {
+  const s=Math.max(FAKE_MERGE.start,Math.min(FAKE_MERGE.end,distance));
+  const main=routePose(s,chosen);
+  const side=routeSide(chosen);
+  const slope=Math.tan(FAKE_MERGE.angleRadians);
+  return {
+    x:main.x-side*(FAKE_MERGE.end-s)*slope,
+    z:main.z,
+    yaw:Math.atan(side*slope),
+  };
+}
+
+export function fakeMergePoint(distance:number,lateral:number,chosen:RouteChoice,y=0):WorldPoint {
+  const p=fakeMergePose(distance,chosen);
+  return {
+    x:p.x+Math.cos(p.yaw)*lateral,
+    z:p.z-Math.sin(p.yaw)*lateral,
+    y,
+    yaw:p.yaw,
+  };
+}
+
+/** How much extra framing the mobile camera needs near the brief S-bend. */
+export function turnFraming(distance:number):number {
+  const s=distance;
+  const start=ROUTE_CURVE.split-17;
+  const end=ROUTE_DETOUR_END+19;
+  if(s<=start||s>=end)return 0;
+  const approach=Math.min(1,Math.max(0,(s-start)/17));
+  const release=Math.min(1,Math.max(0,(end-s)/19));
+  const smooth=(t:number):number=>t*t*(3-2*t);
+  return smooth(approach)*smooth(release);
 }
