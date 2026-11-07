@@ -114,3 +114,10 @@ La branche sélectionnée est désormais **dessinée en continu** : les deux tro
 ## Dégagement du raccord et orientation du chat (v0.16)
 
 Les façades sont désormais filtrées contre la **géométrie réelle du raccord visuel à 45°** : lorsqu'une maison ou son toit empiéterait sur la rue entrante, cette maison et ses décorations ne sont pas générées. Les bâtiments hors de cette zone restent inchangés. Les sprites de profil du chat utilisent la même animation à gauche et à droite : originaux sur la **gauche de l'écran** (orientés vers la droite), miroir sur la **droite de l'écran** (orientés vers la gauche). La vue arrière reste utilisée au centre.
+
+
+## v0.17 — Récompenses immédiates et tests
+
+Les poissons remplissent une **jauge d'Instinct**, qui déclenche automatiquement **Purr Rush** (aimant sur les poissons bleus et double score temporaire). Un combo **rebond → doré haut → réception** rapporte un bonus PURRFECT et augmente le multiplicateur de score. Le module pur `src/game/rewards.ts` porte ces règles, testées par Vitest ; la documentation complète des prochaines étapes (pigeons, chariots, missions, boutique et roguelite) est dans [docs/GAMEPLAY.md](docs/GAMEPLAY.md).
+
+Les poissons de la réserve persistante **ne sont pas encore dépensables** : la boutique est prévue pour la v0.19.

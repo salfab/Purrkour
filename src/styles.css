@@ -63,3 +63,70 @@ button:disabled {opacity:.45;cursor:default}
 .route-choice--active{background:#253650bf;opacity:.84}
 @keyframes route-pulse{from{box-shadow:0 0 4px #ffe6ac55}to{box-shadow:0 0 17px #ffe6acbd}}
 @media(max-width:370px){.route-choice{top:calc(146px + env(safe-area-inset-top));padding:8px}.route-choice__options{font-size:10px}}
+
+/* v0.17: always visible, non-interactive reward feedback; no inline styles. */
+.instinct-bar {
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  top:calc(79px + env(safe-area-inset-top));
+  width:min(39vw,170px);
+  pointer-events:none;
+  z-index:4;
+  background:#24354bd9;
+  border:1px solid #f6e8c699;
+  border-radius:11px;
+  padding:7px 9px 6px;
+  box-shadow:0 3px 12px #162b4652;
+}
+.instinct-bar__label {
+  display:flex;
+  justify-content:space-between;
+  gap:5px;
+  font-size:9px;
+  font-weight:800;
+  white-space:nowrap;
+  color:#fff7db;
+}
+.instinct-bar progress {
+  display:block;
+  width:100%;
+  margin-top:5px;
+  height:8px;
+  border:0;
+  border-radius:9px;
+  overflow:hidden;
+  background:#324761;
+  accent-color:#f0bc62;
+}
+.instinct-bar progress::-webkit-progress-bar { background:#324761; border-radius:9px; }
+.instinct-bar progress::-webkit-progress-value { background:#efb85c; border-radius:9px; }
+.instinct-bar progress::-moz-progress-bar { background:#efb85c; border-radius:9px; }
+.instinct-bar--rush {
+  border-color:#ffe0a0;
+  animation:instinct-glow .7s ease-in-out infinite alternate;
+}
+.instinct-bar--rush progress::-webkit-progress-value{background:#ffe187}
+.instinct-bar__combo {text-align:center;font-weight:900;font-size:10px;color:#ffdc83;margin-top:5px}
+.reward-flash {
+  position:absolute;
+  z-index:5;
+  top:calc(185px + env(safe-area-inset-top));
+  left:50%;
+  transform:translateX(-50%);
+  white-space:nowrap;
+  text-shadow:0 2px 5px #2f3059;
+  font-size:21px;
+  font-weight:950;
+  color:#ffe187;
+  pointer-events:none;
+  animation:reward-pop .35s ease-out both;
+}
+.reward-flash--perfect{color:#a8fff0}
+@keyframes instinct-glow {from {box-shadow:0 0 3px #f9cb66} to {box-shadow:0 0 16px #ffe187}}
+@keyframes reward-pop {from {opacity:.2;transform:translate(-50%,9px) scale(.8)} to {opacity:1;transform:translate(-50%,0) scale(1)}}
+@media(max-width:390px){
+  .instinct-bar{top:calc(125px + env(safe-area-inset-top));width:min(50vw,180px)}
+  .reward-flash{top:calc(194px + env(safe-area-inset-top));font-size:19px}
+}
+@media(prefers-reduced-motion:reduce){.instinct-bar--rush,.reward-flash{animation:none}}

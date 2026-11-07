@@ -2,6 +2,7 @@
 import {segmentPlan,patternHasCrate,safeLaneX} from './gameplayDirector';
 import {ROUTE_FORK,routeFromWorldX,activeRoute,type RouteChoice,type RouteStage} from './routeChoices';
 import {branchSteeringBounds,ROUTE_PREVIEW_END} from './routeGeometry';
+import {createRewardState,comboMultiplier,tickRewards,rewardBounce,rewardLanding,rewardFailure,rewardPickup,rewardPickupInReach,type RewardState,type RewardFeedback} from './rewards';
 export const WORLD = {
   trackWidth: 5,
   segmentLength: 100,
@@ -41,6 +42,7 @@ export interface Player {
   elapsed: number; speed: number; boost: number; anim: number; score: number;
   fish: number; bounces: number; failure: Failure; runSeed:number;
   routeChoice:RouteChoice|null; routeChosenAt:number|null;
+  rewards:RewardState;
 }
 export interface Controls {
   targetX: number | null; left: boolean; right: boolean; jump: boolean;
@@ -55,6 +57,8 @@ export interface Snapshot {
   mode: GameMode; distance: number; altitude: number; score: number; fish: number;
   bank: number; speed: number; boost: number; bounces: number; best: number;
   bestScore: number; failure: Failure; routeChoice:RouteChoice|null; routeStage:RouteStage;
+  instinct:number; rush:number; rushCount:number; comboMultiplier:number;
+  comboChain:number; rewardFeedback:RewardFeedback; lastComboBonus:number;
 }
 export function groundHeight(z: number): number {
   const cycle = Math.max(0, Math.floor(Math.max(0, z) / WORLD.rampPeriod));
@@ -150,11 +154,12 @@ export function pickupsNear(start:number,end:number,runSeed=0,route:RouteChoice|
 export function makePlayer(runSeed=0): Player {
   return { x: 0, y: 0, z: 0, vy: 0, grounded: true, coyote: .1, elapsed: 0,
     speed: WORLD.speedStart, boost: 0, anim: 0, score: 0, fish: 0, bounces: 0, failure: null,runSeed,
-    routeChoice:null,routeChosenAt:null };
+    routeChoice:null,routeChosenAt:null,rewards:createRewardState() };
 }
 export function simulate(player: Player, controls: Controls, collected: Set<string>, dt: number): void {
   if (player.failure) return;
   player.elapsed += dt;
+  tickRewards(player,dt);
   player.boost = Math.max(0, player.boost - dt);
   player.speed = Math.min(WORLD.speedMax, WORLD.speedStart + WORLD.acceleration * player.elapsed) + (player.boost > 0 ? WORLD.boostSpeed : 0);
   player.anim += dt * (5.5 + 1.15 * player.speed);
@@ -201,12 +206,14 @@ export function simulate(player: Player, controls: Controls, collected: Set<stri
         player.coyote = 0;
         player.bounces++;
         player.score += 35;
+        rewardBounce(player);
         bounced = true;
         break;
       }
     }
   }
   if (!bounced) {
+    let landed=false;
     const floor = groundHeight(player.z);
     if (player.grounded) {
       if (isGap(player.z)) {
@@ -217,7 +224,7 @@ export function simulate(player: Player, controls: Controls, collected: Set<stri
       }
     } else if (player.vy <= 0 && !isGap(player.z) && player.y <= floor + .05) {
       if (player.y < floor - .18) player.failure = 'gap';
-      else { player.y = floor; player.vy = 0; player.grounded = true; }
+      else { player.y = floor; player.vy = 0; player.grounded = true; landed=true; }
     }
     if (!player.grounded && isGap(player.z) && player.y < floor - .58) player.failure = 'gap';
     for (const crate of crates) {
@@ -226,17 +233,14 @@ export function simulate(player: Player, controls: Controls, collected: Set<stri
         break;
       }
     }
+    if(landed&&!player.failure)rewardLanding(player);
   }
-  if (player.failure) return;
+  if (player.failure){rewardFailure(player);return;}
   for (const item of pickupsNear(player.z - 1.2, player.z + 1.6, player.runSeed,route)) {
     if (collected.has(item.id)) continue;
-    if (Math.abs(player.x - item.x) < item.rangeX &&
-        Math.abs(player.z - item.z) < item.rangeZ &&
-        Math.abs(player.y + .6 - item.y) < item.rangeY) {
+    if(rewardPickupInReach(player,item,player.x,player.y,player.z)){
       collected.add(item.id);
-      player.score += item.kind === 'boost' ? item.points : item.points * (player.boost > 0 ? 2 : 1);
-      player.fish += item.fishes;
-      if (item.kind === 'boost') player.boost = Math.min(5.5, player.boost + WORLD.boostDuration);
+      rewardPickup(player,item);
     }
   }
 }

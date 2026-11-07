@@ -636,6 +636,9 @@ export class ArtWorld {
     this.shadow.position.y=groundHeight(player.z)-player.y+.025;
     (this.shadow.material as THREE.MeshBasicMaterial).opacity=player.grounded?.3:Math.max(.08,.3-(player.y-groundHeight(player.z))*.055);
     const frame=player.boost>0?7:!player.grounded?6:Math.floor(player.anim)%6;
+    // Keep the kawaii sprite's colors; Rush adds a small warm tint only.
+    const material=this.catSprite.material as THREE.SpriteMaterial;
+    material.color.set(player.rewards.rushRemaining>0?'#fff1bd':'#ffffff');
     // The existing profile art looks toward screen-right. Left side uses it
     // unchanged; right side uses precisely the same atlas mirrored in UVs.
     this.drawCat(frame,view==='rear',mirrorProfileForView(view));

@@ -6,6 +6,8 @@ const initial: Snapshot = {
   mode:'menu',distance:0,altitude:0,score:0,fish:0,bank:0,
   speed:WORLD.speedStart,boost:0,bounces:0,best:0,bestScore:0,failure:null,
   routeChoice:null,routeStage:null,
+  instinct:0,rush:0,rushCount:0,comboMultiplier:1,comboChain:0,
+  rewardFeedback:'none',lastComboBonus:0,
 };
 
 export function App() {
@@ -49,6 +51,25 @@ export function App() {
         <button type="button" className="icon-btn" aria-label="Mettre le jeu en pause" disabled={!running} onClick={()=>game.current?.pause()}>Ⅱ</button>
       </div>
     </header>
+    {running&&<div className={status.rush>0?'instinct-bar instinct-bar--rush':'instinct-bar'}
+      aria-label={status.rush>0?'Purr Rush actif':'Jauge d’instinct'}>
+      <div className="instinct-bar__label">
+        <span>{status.rush>0?'⚡ PURR RUSH !':'✨ INSTINCT'}</span>
+        <span>{status.rush>0?status.rush.toFixed(1)+' s':status.instinct+' / 100'}</span>
+      </div>
+      <progress max={100} value={status.rush>0?100:status.instinct}
+        aria-label="Charge de l’instinct" />
+      {status.comboChain>0&&<div className="instinct-bar__combo">
+        🐾 COMBO ×{status.comboMultiplier}
+      </div>}
+    </div>}
+    {running&&status.rewardFeedback!=='none'&&(
+      <div className={status.rewardFeedback==='perfect'?'reward-flash reward-flash--perfect':'reward-flash'}>
+        {status.rewardFeedback==='perfect'
+          ?'✨ PURRFECT ! +'+status.lastComboBonus
+          :'⚡ PURR RUSH !'}
+      </div>
+    )}
     {running&&status.routeStage!==null&&(status.routeStage!=='active'||status.distance<282)&&(
       <div className={`route-choice route-choice--${status.routeStage}`} aria-live="polite">
         {status.routeStage==='approach'?<>
@@ -70,7 +91,7 @@ export function App() {
     </div>}
     {!running&&<section className="overlay">
       <div className="dialog">
-        <div className="eyebrow">PURRKOUR · V0.16 · MOBILE FIRST</div>
+        <div className="eyebrow">PURRKOUR · V0.17 · MOBILE FIRST</div>
         <h1>Purrkour 🐈</h1>
         {error&&<p className="error">Impossible de démarrer le jeu : {error}</p>}
         {!error&&status.mode==='menu'&&<>
@@ -78,6 +99,8 @@ export function App() {
           <ul>
             <li>Glisse ton pouce en bas de l'écran pour guider le chat.</li>
             <li>Relâche pour sauter. Les caisses deviennent des trampolines !</li>
+            <li>Les poissons remplissent l'Instinct : à 100, Purr Rush attire les poissons bleus !</li>
+            <li>Rebond + poisson doré haut + réception réussie = combo PURRFECT.</li>
             <li>Attrape des poissons, puis apprends à rebondir pour saisir les bonus les plus hauts.</li>
             <li>Choisis entre les poissons faciles au sol et les récompenses à risque.</li>
             <li>Vers 250 m, choisis ta route en te plaçant à gauche ou à droite.</li>
@@ -99,11 +122,13 @@ export function App() {
             <div><span>Poissons gagnés</span><b>+{status.fish} 🐟</b></div>
             <div><span>Réserve totale</span><b>{status.bank} 🐟</b></div>
             <div><span>Rebonds</span><b>{status.bounces}</b></div>
+            <div><span>Purr Rush</span><b>{status.rushCount}</b></div>
+            <div><span>Combo</span><b>×{status.comboMultiplier}</b></div>
             <div><span>Record</span><b>{status.best} m</b></div>
           </div>
           <button type="button" onClick={()=>game.current?.start()}>Rejouer</button>
         </>}
-        <p>Prototype mobile v0.16 · Bifurcation continue et verrouillage de branche.</p>
+        <p>Prototype mobile v0.17 · Instinct félin, Purr Rush et combos.</p>
       </div>
     </section>}
   </main>;

@@ -7,6 +7,7 @@ import {RouteForkView} from './RouteForkView';
 import {forkStage} from './routeChoices';
 import {routePose} from './routeGeometry';
 import {cameraBlendFactor,frameRouteCamera} from './routeCamera';
+import {comboMultiplier} from './rewards';
 
 export type UpdateListener = (snapshot: Snapshot) => void;
 
@@ -181,6 +182,12 @@ export class PurrkourGame {
       bank:this.bank,boost:this.player.boost,bounces:this.player.bounces,
       best:this.best,bestScore:this.bestScore,failure:this.player.failure,
       routeChoice:this.player.routeChoice,routeStage:forkStage(this.player.z,this.player.routeChoice,this.player.elapsed,this.player.routeChosenAt),
+      instinct:this.player.rewards.instinct,rush:this.player.rewards.rushRemaining,
+      rushCount:this.player.rewards.rushCount,
+      comboMultiplier:comboMultiplier(this.player.rewards),
+      comboChain:this.player.rewards.comboChain,
+      rewardFeedback:this.player.rewards.feedback,
+      lastComboBonus:this.player.rewards.lastBonus,
     });
   }
   dispose():void{

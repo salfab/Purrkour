@@ -240,3 +240,57 @@ Les deux voies commencent comme deux moitiés contiguës de la route commune et 
 
 - Les maisons ne doivent jamais traverser la rue de raccordement factice à 45° : avant d'ajouter une façade, le générateur teste son emprise au sol et celle de son toit contre plusieurs points de la bande routière. Les seules façades trop proches sont supprimées, sans modifier les obstacles ou la route active.
 - Le chat utilise le sprite arrière au centre ; sur le côté gauche de l'écran il conserve le profil original tourné vers la droite, et sur le côté droit il réutilise le **même profil** inversé horizontalement. La logique d'orientation est extraite dans `src/game/catView.ts` et couverte par des tests.
+
+---
+
+## 17. Nouvelle boucle de récompenses et feuille de route (novembre 2026)
+
+### Le problème à résoudre
+
+Après quelques minutes, le joueur connaît la course, les caisses et les ravins, mais n'a pas assez de raisons de risquer sa partie pour attraper les poissons. Le score existe et les poissons s'ajoutent à une banque, mais **la banque ne sert toujours à rien**. La difficulté plafonne trop vite et ne combine pas assez de mécaniques.
+
+**Nouvelle boucle visée** : courir → prendre un risque lisible → réussir un enchaînement → gagner de l’Instinct → déclencher Purr Rush → atteindre des objectifs → obtenir des déblocages permanents → recommencer avec une nouvelle intention.
+
+### v0.17 — Instinct, Purr Rush, combo (✅ implémentation initiale)
+
+- **Poissons bleus : +4 Instinct**, poissons dorés simples : +15, **dorés hauts : +30** ; boost : +8. Ces valeurs sont des hypothèses d'équilibrage.
+- À **100 Instinct**, activation **automatique** de **Purr Rush pendant 6 secondes**, sans nouveau bouton. Un compteur de déclenchements figure à l'écran.
+- Pendant le Rush, le score des poissons est **doublé** et les **poissons bleus** proches sont attirés (rayon de prise latéral agrandi). Les poissons jaunes/dorés, notamment ceux qui exigent un rebond, **ne sont jamais attirés**.
+- La collecte remplit encore la jauge pendant le Rush ; elle peut se déclencher de nouveau une fois le pouvoir terminé. Le compteur d'Instinct et le Rush se réinitialisent à chaque run.
+- **Combo d'adresse : rebond sur caisse → poisson doré haut en vol → réception sur la piste** dans la fenêtre d'environ 4,5 s. La réception réussie offre un bonus de **150 × rang de combo** et fait augmenter le multiplicateur du score des prochains poissons (**×2 à ×4**).
+- La chaîne expire après **13 secondes** sans nouvelle réception parfaite et est perdue en cas de mort. Un poisson manqué ne la casse pas. Les poissons conservés en banque ne sont pas multipliés par le combo.
+- HUD dédié **Instinct / Purr Rush / combo**, message **PURRFECT!** lors d'un enchaînement réussi ; légère teinte chaude du chat pendant le Rush. Conservation du sprite kawaii existant.
+- En présence d'un boost de vitesse, son multiplicateur de score et celui du Purr Rush peuvent se cumuler. Ce cumul est volontaire et sera rééquilibré à l'usage.
+- **Tests automatiques requis :** seuil de la jauge, déclenchement et durée, aimant bleu uniquement, combo correct et ordre des actions, expiration, mort, remise à zéro entre runs, non-régression des contrôles et embranchements.
+
+**Limite de la v0.17 :** la réserve persistante de poissons n'est pas encore dépensable ; il n'y a pas de magasin, de déblocage permanent ni de mission implémentée. Le HUD et les récompenses doivent être éprouvés sur téléphone.
+
+### v0.18 — Plus de tension et de variété (⬜ prévu)
+
+Introduire **deux nouveaux types d’obstacles non violents** :
+
+1. **Pigeons qui traversent** : trajectoire visible/anticipable ; contact = perte de combo ou de vitesse plutôt qu'une mort automatique, à valider. Exiger une vraie décision latérale.
+2. **Chariot roulant** : obstacle mobile qui peut être évité ou utilisé comme plateforme de rebond ; danger plus grand, récompense proportionnée.
+
+Puis étendre la bibliothèque de patterns au directeur : approches de faible intensité, pics de tension courts, récupération, combinaisons apprises progressivement. Ajuster la densité **en temps de réaction**, pas seulement en mètres. Introduire la difficulté par couches (vitesse, positionnement, timing, risque, enchaînement, variété), sans pièges impossibles ni répétition trop rapide. Conserver une voie de survie et les contraintes de sécurité durant la bifurcation.
+
+**Plus tard**, envisager les draps suspendus et les bourrasques de vent, après validation de la lisibilité et de la stabilité des contrôles.
+
+### v0.19 — Objectifs, dépenses et roguelite (⬜ prévu)
+
+- **Missions mesurables par run** : poissons, rebonds, dorés hauts, combo parfait, déclenchements de Rush, distance. Elles doivent demander des actions concrètes plutôt que du grind arbitraire.
+- **Accomplissements permanents** déverrouillant les compétences disponibles au cours des runs (Aimant félin, Rebond amélioré, Instinct prolongé, etc.).
+- **Niveaux 1–3 des compétences** : le niveau 1 existe d'abord ; les niveaux 2 et 3 doivent être déverrouillés globalement par des accomplissements avant d'être disponibles en run.
+- **Boutique utilisant la réserve de poissons** pour des améliorations ou des skins kawaii ; l'économie doit être équilibrée pour ne pas éliminer le plaisir des runs sans achat.
+- **Progression méta** : quelques déblocages permanents, pas une inflation illimitée du pouvoir du chat ; réconcilier la difficulté du parcours avec les améliorations obtenues.
+- Faire participer les routes Poissons / Acrobaties à des objectifs différents, en gardant des récompenses équitables pour les deux styles de jeu.
+
+### Critères de réussite et instrumentations à venir
+
+Mesurer durée moyenne de run, proportion de joueurs obtenant un Rush, fréquence des combos parfaits, distribution des morts par obstacle, choix des branches et taux de collecte des poissons hauts. Une mécanique attractive doit être comprise et tentée volontairement ; une mécanique qui conduit systématiquement à des morts frustrantes doit être revue.
+
+### Stratégie de tests
+
+Chaque modification significative doit inclure des tests **Vitest** des règles déterministes pures dans `src/game/`, plus des **tests d'intégration de simulation** pour les collisions, rebonds, collectibles, choix de route et score. Tests existants de caméra et de géométrie à conserver. Le pipeline GitHub Actions exécute **TypeScript strict → Vitest → Vite build → GitHub Pages** et le déploiement n'est déclaré réussi que si le workflow complet réussit.
+
+Les tests automatisés **ne prouvent pas** la qualité perceptive sur mobile : cadrage, animation, contraste, sensation de risque, musique et ergonomie doivent toujours faire l'objet de tests réels.
