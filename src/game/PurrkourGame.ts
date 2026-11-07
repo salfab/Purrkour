@@ -44,7 +44,7 @@ export class PurrkourGame {
     this.renderer.outputColorSpace=THREE.SRGBColorSpace;
     this.scene.background=new THREE.Color('#bfe6f5');
     const horizon=new THREE.TextureLoader().load(
-      `${import.meta.env.BASE_URL}assets/backgrounds/mediterranean_horizon.webp`,
+      `${import.meta.env.BASE_URL}assets/backgrounds/mediterranean_horizon.avif`,
       texture=>{ texture.colorSpace=THREE.SRGBColorSpace; this.scene.background=texture; },
       undefined,
       ()=>console.warn('Purrkour: horizon image unavailable; using sky color'),
