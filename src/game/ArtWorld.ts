@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { WORLD, cratesNear, groundHeight, isGap, pickupsNear, type Pickup, type Player } from './core';
 import { gapEdgesInRange } from './backdropMath';
 import {ROUTE_FORK,activeRoute,type RouteChoice} from './routeChoices';
+import {routePoint} from './routeGeometry';
 
 function canvasTexture(size: number, paint: (ctx: CanvasRenderingContext2D, size: number) => void): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -309,14 +310,19 @@ export class ArtWorld {
   }
   private createChunk(index:number,runSeed:number,route:RouteChoice|null):THREE.Group{
     const from=index*this.chunkLength;const to=from+this.chunkLength;const group=new THREE.Group();
+    // Before choosing a branch, two decorative roads already show the Y.
+    // Do not also draw the original straight track beyond 250m.
+    const visualEnd=route===null?Math.min(to,ROUTE_FORK.chooseZ):to;
+    if(visualEnd<=from)return group;
     const vertices:number[]=[];const uv:number[]=[];
     const terrainVertices:number[]=[];const terrainUv:number[]=[];
     const terrainTop=(z:number)=>groundHeight(z)-1.8;
-    for(let z=from;z<to;z+=.5){
-      const end=Math.min(z+.5,to);
+    const terrainExtent=from>=240&&from<430?9.5:12.5;
+    for(let z=from;z<visualEnd;z+=.5){
+      const end=Math.min(z+.5,visualEnd);
       // Side streets are continuous even where the elevated runner has gaps.
       // Their top is aligned with the houses' existing -1.8 m foundation.
-      for (const [x0,x1] of [[-12.5,-2.7],[2.7,12.5]] as const) {
+      for (const [x0,x1] of [[-terrainExtent,-2.7],[2.7,terrainExtent]] as const) {
         const a=terrainTop(z), b=terrainTop(end);
         terrainVertices.push(x0,a,z,x0,b,end,x1,a,z, x0,b,end,x1,b,end,x1,a,z);
         terrainUv.push(x0*.21,z*.36,x0*.21,end*.36,x1*.21,z*.36, x0*.21,end*.36,x1*.21,end*.36,x1*.21,z*.36);
@@ -361,14 +367,14 @@ export class ArtWorld {
     }
     // Each lip curves visually down into the lower street rather than ending
     // as a paper-thin horizontal sheet.
-    for(const lip of gapEdgesInRange(from,to,WORLD.gapStart,WORLD.gapEnd,WORLD.segmentLength)){
-      if(Math.floor(lip/WORLD.segmentLength)===2)continue;
+    for(const lip of gapEdgesInRange(from,visualEnd,WORLD.gapStart,WORLD.gapEnd,WORLD.segmentLength)){
+      if(lip>=200&&lip<430)continue;
       const floor=groundHeight(lip);
       const depth=1.8;
       this.box(group,0,floor-depth/2,lip,WORLD.trackWidth,depth,.13,this.gapLipMaterial);
       this.box(group,0,floor+.035,lip,WORLD.trackWidth,.07,.17,this.edgeMaterial);
     }
-    for(let z=from;z<to;z+=2){
+    for(let z=from;z<visualEnd;z+=2){
       if(isGap(z)||isGap(z+1)||isGap(z+2))continue;
       const y=groundHeight(z+1);
       this.box(group,-2.6,y+.11,z+1,.24,.26,2,this.edgeMaterial);
@@ -377,19 +383,19 @@ export class ArtWorld {
       this.box(group,-2.59,y-.88,z+1,.18,1.75,2,this.terraceMaterial);
       this.box(group,2.59,y-.88,z+1,.18,1.75,2,this.terraceMaterial);
     }
-    for(const c of cratesNear(from,to,runSeed,route)){
-      if(c.z<from||c.z>=to)continue;
+    for(const c of cratesNear(from,visualEnd,runSeed,activeRoute(from+1,route))){
+      if(c.z<from||c.z>=visualEnd)continue;
       this.box(group,c.x,groundHeight(c.z)+c.height/2,c.z,c.width,c.height,c.depth,this.crateMaterial);
     }
-    for(const p of pickupsNear(from,to,runSeed,route)){
-      if(p.z<from||p.z>=to)continue;
+    for(const p of pickupsNear(from,visualEnd,runSeed,activeRoute(from+1,route))){
+      if(p.z<from||p.z>=visualEnd)continue;
       const sprite=new THREE.Sprite(this.pickupMaterials[p.kind]);
       const size=p.kind==='sky'?1.15:p.kind==='gold'?.96:p.kind==='boost'?.85:.7;
       sprite.scale.set(size,size,1);
       sprite.position.set(p.x,p.y,p.z);
       group.add(sprite);this.pickups.set(p.id,{sprite,item:p});
     }
-    if(index%3===0){
+    if(index%3===0&&from+5<visualEnd){
       const left=index%2===0;const sign=left?-1:1;const z=from+5;
       const floor=groundHeight(z),height=5.8+(index%4)*.65;
       this.box(group,sign*7,floor+height/2-1.8,z,3.7,height,12,left?this.wallMaterial:this.peachMaterial);
@@ -398,7 +404,30 @@ export class ArtWorld {
       this.prop(group,'flower',sign*3.55,floor-1.8+.55,z+3.5,1.05,1.05);
       this.wallProp(group,'banner',sign as -1|1,floor+3.2,z+3,1.05,1.7);
     }
+    this.warpChunk(group,route);
     return group;
+  }
+
+  /** Bend all paved mesh vertices; rotate boxes and facades on each tangent. */
+  private warpChunk(group:THREE.Group,route:RouteChoice|null):void{
+    if(route===null)return;
+    for(const obj of group.children){
+      if(obj instanceof THREE.Mesh && obj.geometry.type==='BufferGeometry'
+          && obj.position.x===0 && obj.position.z===0){
+        const positions=obj.geometry.getAttribute('position');
+        for(let i=0;i<positions.count;i++){
+          const x=positions.getX(i),y=positions.getY(i),z=positions.getZ(i);
+          const point=routePoint(z,x,route);
+          positions.setXYZ(i,point.x,y,point.z);
+        }
+        positions.needsUpdate=true;
+        obj.geometry.computeVertexNormals();
+      }else{
+        const point=routePoint(obj.position.z,obj.position.x,route);
+        obj.position.set(point.x,obj.position.y,point.z);
+        if(obj instanceof THREE.Mesh)obj.rotation.y+=point.yaw;
+      }
+    }
   }
   resetRun(seed:number):void{
     for(const chunk of this.chunks.values()){
@@ -416,7 +445,7 @@ export class ArtWorld {
     if(route===this.activeRoute)return;
     this.activeRoute=route;
     for(const [index,chunk] of this.chunks){
-      if(index*this.chunkLength<ROUTE_FORK.exitZ)continue;
+      if((index+1)*this.chunkLength<=ROUTE_FORK.chooseZ)continue;
       chunk.traverse(obj=>{
         if(obj instanceof THREE.Mesh)obj.geometry.dispose();
         if(obj instanceof THREE.Sprite){
@@ -435,7 +464,7 @@ export class ArtWorld {
 
   update(player:Player,collected:ReadonlySet<string>):void{
     if(player.runSeed!==this.activeRunSeed)this.resetRun(player.runSeed);
-    this.refreshRoute(activeRoute(player.z,player.routeChoice));
+    this.refreshRoute(player.routeChoice);
     const start=Math.max(0,Math.floor((player.z-15)/this.chunkLength));
     const end=Math.floor((player.z+80)/this.chunkLength);
     for(let i=start;i<=end;i++)if(!this.chunks.has(i)){
@@ -455,7 +484,8 @@ export class ArtWorld {
       sprite.visible=!collected.has(item.id);
       sprite.position.y=item.y+Math.sin(player.elapsed*4+item.z*.3)*.065;
     }
-    this.cat.position.set(player.x,player.y,player.z);
+    const position=routePoint(player.z,player.x,player.routeChoice);
+    this.cat.position.set(position.x,player.y,position.z);
     // Three.Sprite uses a signed X scale; mirror the existing animation when
     // the cat is on the screen-right side (negative world X for our camera).
     this.catSprite.scale.x=player.x<-.28?-1.9:1.9;
