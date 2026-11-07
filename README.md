@@ -1,47 +1,46 @@
 # Purrkour 🐈
 
-Jeu de parkour félin **mobile-first**, développé avec **React, TypeScript et Three.js**.
+Prototype mobile-first d'un jeu de course félin en 2.5D / 3D légère.
 
-Le dépôt a été initialisé et le workflow GitHub Pages est installé. **Le code du jeu v0.7 n'est pas encore importé** : seul le README et la configuration CI/CD sont présents pour le moment.
+## Démo
 
-## Importer le projet v0.7
+GitHub Pages : https://salfab.github.io/Purrkour/
 
-Télécharger l'archive `Purrkour_GitHub_Pages_ready.zip` fournie dans la conversation, puis, sur macOS/Linux :
+Le déploiement automatique est assuré par `.github/workflows/deploy-pages.yml`.
 
-```bash
-git clone https://github.com/salfab/Purrkour.git
-unzip -o ~/Downloads/Purrkour_GitHub_Pages_ready.zip -d Purrkour
-cd Purrkour
+## Pile technique
 
-# Garder le workflow de déploiement déjà installé sur GitHub.
-git restore .github/workflows/deploy-pages.yml
+- React pour l'interface.
+- Three.js pour le couloir et le personnage en sprite.
+- TypeScript strict pour les règles et les contrôles.
+- Vite pour le développement et la compilation.
+- pnpm et Vitest pour les dépendances et les tests.
 
-git add .
-git commit -m "feat: import Purrkour v0.7 mobile game"
-git push origin main
-```
-
-Adapter le chemin de l'archive si elle se trouve ailleurs que dans `~/Downloads`.
-
-## Développement
+## Lancer localement
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-## Déploiement GitHub Pages
+## Contrôles
 
-Le workflow `.github/workflows/deploy-pages.yml` vérifie le projet, lance les tests et construit l'application avec `GITHUB_PAGES=true`, afin que Vite utilise le bon préfixe `/Purrkour/`.
+- En bas de l'écran, **maintenir et glisser** le pouce pour choisir une position latérale.
+- **Relever le pouce** pour sauter.
+- Au clavier : flèches latérales et espace.
+- Toucher le dessus d'une caisse déclenche un rebond ; une collision sur le côté termine le run.
 
-Dans **Settings → Pages**, sélectionner **GitHub Actions** comme source.
+## Architecture
 
-Une fois un déploiement réussi, le jeu sera disponible à :
+- `src/game/core.ts` contient les règles pures et la génération déterministe.
+- `src/game/ThumbControls.ts` contient les contrôles au pouce, souris et clavier.
+- `src/game/ArtWorld.ts` génère le couloir, les matériaux et un chat kawaii par CanvasTexture.
+- `src/game/PurrkourGame.ts` orchestre simulation, rendu Three.js et caméra.
+- `src/App.tsx` affiche menus et HUD React.
+- `tests/core.test.ts` vérifie la physique et la progression.
 
-https://salfab.github.io/Purrkour/
+## État du prototype
 
-Le workflow est volontairement conçu pour ne pas tenter le déploiement tant que `package.json`, `vite.config.ts` et `src/` sont absents.
+Cette première version poussée directement depuis ChatGPT utilise des textures et un chat illustré **générés procéduralement dans le navigateur**, afin d'avoir un projet qui démarre sans dépendances d'assets téléchargés. Le spritesheet kawaii original, les textures peintes haute résolution et la musique de fond ont été conservés dans l'archive v0.7 créée précédemment, mais **ne sont pas encore présents dans ce dépôt**. Il faudra les importer séparément après vérification des droits de diffusion de la musique.
 
-## Droits des assets
-
-Avant de diffuser publiquement la bande-son, vérifier que la musique et les éléments graphiques peuvent être distribués.
+Les poissons récoltés s'ajoutent à une réserve locale en fin de run. Le système de déverrouillage permanent reste à développer.

@@ -1,0 +1,35 @@
+:root {font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-synthesis:none;color:#fff9ef;background:#142237}
+* {box-sizing:border-box}
+html,body,#root {margin:0;width:100%;height:100%;overflow:hidden}
+button {font:inherit;cursor:pointer}
+button:disabled {opacity:.45;cursor:default}
+.game {position:relative;width:100%;height:100dvh;overflow:hidden;isolation:isolate;background:#c2dff1}
+.stage {display:block;width:100%;height:100%;touch-action:none}
+.hud {position:absolute;top:calc(12px + env(safe-area-inset-top));left:12px;right:12px;display:flex;justify-content:space-between;gap:8px;z-index:4;pointer-events:none}
+.hud-stats {display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.chip,.icon-btn {background:#253650e8;border:1px solid #ffffff69;border-radius:12px;color:#fff8ed;box-shadow:0 4px 10px #26344a33}
+.chip {padding:7px 11px;font-size:13px;font-weight:700}
+.chip strong {font-size:17px}
+.chip small {display:block;color:#d6ebf2;font-size:10px;letter-spacing:.1em}
+.chip--boost {color:#95f4ff}
+.hud-buttons {display:flex;gap:6px;pointer-events:auto}
+.icon-btn {height:41px;min-width:41px;font-size:19px;padding:5px 8px;font-weight:700}
+.touch-tip {position:absolute;bottom:calc(14px + env(safe-area-inset-bottom));left:10px;right:10px;pointer-events:none;z-index:5;display:grid;gap:5px;justify-items:center;text-align:center;font-weight:750;text-shadow:0 2px 4px #27334b}
+.touch-tip strong {background:#253650c9;border:1px solid #ffffff55;border-radius:12px;padding:7px 11px;font-size:12px}
+.touch-tip span {font-size:11px}
+.overlay {position:absolute;inset:0;z-index:10;display:grid;place-items:center;background:#111d2bb5;backdrop-filter:blur(5px);padding:15px}
+.dialog {width:min(100%,400px);max-height:calc(100dvh - 30px);overflow:auto;border-radius:22px;background:#27364e;border:1px solid #c9d7e05c;padding:23px;text-align:center;box-shadow:0 20px 60px #111d2c77}
+.dialog h1 {font-size:39px;margin:5px 0 10px}
+.dialog h2 {font-size:27px;margin:5px 0}
+.dialog p {font-size:14px;line-height:1.5;color:#e3edf6}
+.dialog .eyebrow {font-size:11px;color:#f8cc81;font-weight:800;letter-spacing:.13em}
+.dialog ul {text-align:left;font-size:13px;line-height:1.55;padding-left:20px;color:#dce7ee}
+.dialog li {margin:5px 0}
+.dialog button {width:100%;background:#ffd28b;border:0;color:#26364a;border-radius:13px;min-height:46px;font-weight:800;margin-top:9px}
+.dialog button.secondary {background:#ffffff17;color:#fff;border:1px solid #ffffff5e}
+.stats {display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:13px 0}
+.stats div {background:#ffffff13;padding:10px;border-radius:10px}
+.stats span {display:block;color:#bfccdb;font-size:11px}
+.stats b {display:block;font-size:19px}
+.error {color:#ffe2df!important}
+@media(min-width:610px){.game{max-width:480px;margin:auto;border-inline:2px solid #ffffff35}body{background:radial-gradient(circle,#435577,#111b2c)}}
