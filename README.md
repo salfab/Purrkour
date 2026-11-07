@@ -86,3 +86,7 @@ fournie, renommé sans changement audio).
 `src/game/gameplayDirector.ts` choisit parmi 8 séquences écrites à la main, en fonction de la distance et d'une graine unique par run. Les caisses et les poissons sont générés depuis le même plan, ce qui garantit leur alignement. Le tutoriel des 200 premiers mètres reste reproductible. La génération des fossés, l'équilibrage temporel et le combo seront travaillés plus tard. Voir [docs/GAMEPLAY.md](docs/GAMEPLAY.md) pour les détails.
 
 Le sprite du chat est désormais symétrisé lorsqu'il est à droite de l'écran. Un nouvel atlas de course vue arrière reste à produire. Les instructions tactiles disparaissent après 42 m.
+
+## Embranchement expérimental v0.11
+
+À environ **250 mètres**, le chat traverse deux portails : à gauche (à l'écran) la route des poissons et à droite la route des acrobaties. Le choix est automatiquement validé par la position latérale du chat, sans bouton. Une rotation cinématique d'environ une seconde annonce la section de 150 m qui suit. Ce premier essai conserve le système de piste droite et utilise un virage simulé par la caméra ; voir [docs/GAMEPLAY.md](docs/GAMEPLAY.md).

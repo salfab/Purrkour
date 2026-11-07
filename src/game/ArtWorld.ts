@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { WORLD, cratesNear, groundHeight, isGap, pickupsNear, type Pickup, type Player } from './core';
 import { gapEdgesInRange } from './backdropMath';
+import {ROUTE_FORK,activeRoute,type RouteChoice} from './routeChoices';
 
 function canvasTexture(size: number, paint: (ctx: CanvasRenderingContext2D, size: number) => void): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -184,6 +185,7 @@ export class ArtWorld {
   private lastFrame=-1;
   private readonly chunkLength=12;
   private activeRunSeed=0;
+  private activeRoute:RouteChoice|null=null;
   constructor(){
     const tex=(texture:THREE.Texture)=>{this.textures.push(texture);return texture;};
     const mat=(t:THREE.Texture)=>{const m=new THREE.MeshLambertMaterial({map:tex(t),side:THREE.DoubleSide});this.materials.push(m);return m;};
@@ -305,7 +307,7 @@ export class ArtWorld {
     mesh.rotation.y=side<0?Math.PI/2:-Math.PI/2;
     group.add(mesh);
   }
-  private createChunk(index:number,runSeed:number):THREE.Group{
+  private createChunk(index:number,runSeed:number,route:RouteChoice|null):THREE.Group{
     const from=index*this.chunkLength;const to=from+this.chunkLength;const group=new THREE.Group();
     const vertices:number[]=[];const uv:number[]=[];
     const terrainVertices:number[]=[];const terrainUv:number[]=[];
@@ -360,6 +362,7 @@ export class ArtWorld {
     // Each lip curves visually down into the lower street rather than ending
     // as a paper-thin horizontal sheet.
     for(const lip of gapEdgesInRange(from,to,WORLD.gapStart,WORLD.gapEnd,WORLD.segmentLength)){
+      if(Math.floor(lip/WORLD.segmentLength)===2)continue;
       const floor=groundHeight(lip);
       const depth=1.8;
       this.box(group,0,floor-depth/2,lip,WORLD.trackWidth,depth,.13,this.gapLipMaterial);
@@ -374,11 +377,11 @@ export class ArtWorld {
       this.box(group,-2.59,y-.88,z+1,.18,1.75,2,this.terraceMaterial);
       this.box(group,2.59,y-.88,z+1,.18,1.75,2,this.terraceMaterial);
     }
-    for(const c of cratesNear(from,to,runSeed)){
+    for(const c of cratesNear(from,to,runSeed,route)){
       if(c.z<from||c.z>=to)continue;
       this.box(group,c.x,groundHeight(c.z)+c.height/2,c.z,c.width,c.height,c.depth,this.crateMaterial);
     }
-    for(const p of pickupsNear(from,to,runSeed)){
+    for(const p of pickupsNear(from,to,runSeed,route)){
       if(p.z<from||p.z>=to)continue;
       const sprite=new THREE.Sprite(this.pickupMaterials[p.kind]);
       const size=p.kind==='sky'?1.15:p.kind==='gold'?.96:p.kind==='boost'?.85:.7;
@@ -405,13 +408,38 @@ export class ArtWorld {
     this.chunks.clear();
     this.pickups.clear();
     this.activeRunSeed=seed;
+    this.activeRoute=null;
   }
+
+  /** Reload only future geometry when the player commits to a fork choice. */
+  private refreshRoute(route:RouteChoice|null):void{
+    if(route===this.activeRoute)return;
+    this.activeRoute=route;
+    for(const [index,chunk] of this.chunks){
+      if(index*this.chunkLength<ROUTE_FORK.exitZ)continue;
+      chunk.traverse(obj=>{
+        if(obj instanceof THREE.Mesh)obj.geometry.dispose();
+        if(obj instanceof THREE.Sprite){
+          for(const [id,p] of this.pickups)if(p.sprite===obj)this.pickups.delete(id);
+        }
+      });
+      this.group.remove(chunk);
+      this.chunks.delete(index);
+    }
+  }
+
+  /** Cosmetic banking during the non-interactive camera turn. */
+  setTurnLean(amount:number):void{
+    (this.catSprite.material as THREE.SpriteMaterial).rotation=amount;
+  }
+
   update(player:Player,collected:ReadonlySet<string>):void{
     if(player.runSeed!==this.activeRunSeed)this.resetRun(player.runSeed);
+    this.refreshRoute(activeRoute(player.z,player.routeChoice));
     const start=Math.max(0,Math.floor((player.z-15)/this.chunkLength));
     const end=Math.floor((player.z+80)/this.chunkLength);
     for(let i=start;i<=end;i++)if(!this.chunks.has(i)){
-      const chunk=this.createChunk(i,this.activeRunSeed);this.chunks.set(i,chunk);this.group.add(chunk);
+      const chunk=this.createChunk(i,this.activeRunSeed,this.activeRoute);this.chunks.set(i,chunk);this.group.add(chunk);
     }
     for(const [i,chunk] of this.chunks){
       if(i>=start&&i<=end)continue;

@@ -162,3 +162,20 @@ Avant de produire plus de mécaniques :
 - Les caisses sont individuelles et laissent un côté libre ; la faisabilité complète de toutes les trajectoires (notamment boost et récupération) n'est **pas encore validée par une simulation automatique**.
 - Le sprite existant est inversé à droite. Il faudra créer un atlas spécifique de course vue arrière pour centrer proprement le personnage.
 - Les consignes tactiles disparaissent au-delà de 42 m.
+
+## 11. First Route Fork — v0.11
+
+**✅ Prototype implémenté.** Une seule bifurcation expérimentale apparaît vers **250 m**.
+
+- À partir de **229 m** : les deux parcours sont annoncés dans un bandeau mobile et par des portails en 3D.
+- **À 250 m** : choix automatique selon la position latérale du chat. **Gauche écran = Poissons**, **droite écran = Acrobaties**. Aucune pression sur un bouton, aucun relâchement du pouce requis.
+- Le virage est simulé pendant **0,95 seconde** avec une rotation douce de la caméra et un léger penchement du sprite, sans interrompre la course.
+- Un système central `src/game/routeChoices.ts` assure la cohérence entre le choix, la simulation, le rendu et l'interface.
+- Les segments entre 250 et **400 m** adoptent des ensembles de patterns différents : davantage de lignes/boosts côté poissons, davantage de caisses/rebonds côté acrobaties.
+- La portion **200–300 m** exclut exceptionnellement son fossé pour sécuriser la lecture et la transition.
+- Le directeur conserve les règles physiques et le couloir linéaire ; la géométrie de deux véritables routes qui tournent à 90° n'est **pas encore implémentée**.
+- Les portails sont des éléments visuels non solides, et le passage entre deux univers est représenté par l'animation de caméra et le changement de patterns.
+- Aucun choix de branche permanente ni de ressource consommable ; c'est une décision propre au run.
+- Tests automatisés : direction droite/gauche (axes caméra), tutoriel conservé, mode actif, et alignement des caisses avec leurs récompenses.
+
+**À tester sur téléphone :** compréhension immédiate des pictogrammes, distance réelle d'anticipation, absence de cinétose à la rotation, visibilité des couleurs du portail, différence perceptible de difficulté entre les deux voies. Une vraie route courbe nécessitera ensuite une adaptation des coordonnées de déplacement et de la caméra, sans la simuler par un simple écran de transition.

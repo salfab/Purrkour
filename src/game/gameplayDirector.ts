@@ -5,6 +5,8 @@
  * collisions or obstacle geometry. Given a run seed and segment index, both
  * the renderer and simulation get the exact same plan.
  */
+import type {RouteChoice} from './routeChoices';
+
 export type PatternPhase='flow'|'choice'|'tension'|'reward';
 export type PatternId=
   | 'fish-lane'
@@ -57,13 +59,21 @@ function choice<T>(options:readonly T[],seed:number,k:number,slot:number):T{
  * Later segments combine patterns more freely, within a small tier catalog.
  * The gap stays at 68.5–70.8 m in each 100-m segment for this first iteration.
  */
-export function segmentPlan(segment:number,runSeed=0):SegmentPlan{
+export function segmentPlan(segment:number,runSeed=0,route:RouteChoice|null=null):SegmentPlan{
   const k=Math.max(0,Math.floor(segment));
   const tier=k<1?0:k<3?1:k<5?2:3;
   let ids:readonly [PatternId,PatternId,PatternId,PatternId];
   if(k===0)ids=['jump-grab','jump-grab','slalom','jump-grab'];
   else if(k===1)ids=['jump-grab','bounce-grab','slalom','recovery-strip'];
-  else{
+  else if(k===2){
+    // A calm, obstacle-free decision area around z=250.
+    ids=['jump-grab','fish-lane','fish-lane',
+      route==='fish'?'boost-trail':route==='acro'?'bounce-grab':'recovery-strip'];
+  } else if(k===3 && route==='fish'){
+    ids=['fish-lane','boost-trail','slalom','recovery-strip'];
+  } else if(k===3 && route==='acro'){
+    ids=['jump-grab','bounce-grab','weave','bounce-grab'];
+  } else{
     const intro:readonly PatternId[]=tier>=2
       ? ['fish-lane','jump-grab','safe-or-skill','jump-grab']
       : ['fish-lane','jump-grab','safe-or-skill'];
@@ -82,7 +92,7 @@ export function segmentPlan(segment:number,runSeed=0):SegmentPlan{
   const placements=slots.map((slot,index):PatternPlacement=>{
     const id=ids[index]!;
     // First two segments are safe to learn and match our tutorial test fixtures.
-    const x=k<=1?([-1.35,1.3,0,0][index]??0)
+    const x=k<=2?([-1.35,1.3,0,0][index]??0)
       :([-1.35,0,1.3][hash(runSeed,k,index+9)%3]??0);
     return {...slot,id,x};
   });

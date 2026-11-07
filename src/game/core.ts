@@ -1,5 +1,6 @@
 /** Pure, deterministic Purrkour gameplay. No browser or Three.js dependencies. */
 import {segmentPlan,patternHasCrate,safeLaneX} from './gameplayDirector';
+import {ROUTE_FORK,routeFromWorldX,activeRoute,forkStage,type RouteChoice,type RouteStage} from './routeChoices';
 export const WORLD = {
   trackWidth: 5,
   segmentLength: 100,
@@ -38,6 +39,7 @@ export interface Player {
   x: number; y: number; z: number; vy: number; grounded: boolean; coyote: number;
   elapsed: number; speed: number; boost: number; anim: number; score: number;
   fish: number; bounces: number; failure: Failure; runSeed:number;
+  routeChoice:RouteChoice|null; routeChosenAt:number|null;
 }
 export interface Controls {
   targetX: number | null; left: boolean; right: boolean; jump: boolean;
@@ -51,7 +53,7 @@ export interface Pickup {
 export interface Snapshot {
   mode: GameMode; distance: number; altitude: number; score: number; fish: number;
   bank: number; speed: number; boost: number; bounces: number; best: number;
-  bestScore: number; failure: Failure;
+  bestScore: number; failure: Failure; routeChoice:RouteChoice|null; routeStage:RouteStage;
 }
 export function groundHeight(z: number): number {
   const cycle = Math.max(0, Math.floor(Math.max(0, z) / WORLD.rampPeriod));
@@ -61,14 +63,17 @@ export function groundHeight(z: number): number {
 }
 export function isGap(z: number): boolean {
   if (z < 0) return false;
+  // The 200–300 m segment contains the first fork. Keep its landing area
+  // free of chasms while the camera is turning.
+  if(Math.floor(z/WORLD.segmentLength)===2)return false;
   const local = z % WORLD.segmentLength;
   return local >= WORLD.gapStart && local <= WORLD.gapEnd;
 }
-export function cratesNear(start:number,end:number,runSeed=0):Crate[]{
+export function cratesNear(start:number,end:number,runSeed=0,route:RouteChoice|null=null):Crate[]{
   const crates:Crate[]=[];
   for(let k=Math.max(0,Math.floor(start/100)-1);k<=Math.floor(end/100)+1;k++){
     const base=k*100;
-    for(const placement of segmentPlan(k,runSeed).placements){
+    for(const placement of segmentPlan(k,runSeed,route).placements){
       if(!patternHasCrate(placement.id))continue;
       const label=placement.slot==='intro'?'a':placement.slot==='choice'?'b':placement.slot==='pressure'?'t':'c';
       crates.push({
@@ -80,7 +85,7 @@ export function cratesNear(start:number,end:number,runSeed=0):Crate[]{
   return crates.filter(c=>c.z>=start-2&&c.z<=end+2);
 }
 
-export function pickupsNear(start:number,end:number,runSeed=0):Pickup[]{
+export function pickupsNear(start:number,end:number,runSeed=0,route:RouteChoice|null=null):Pickup[]{
   const result:Pickup[]=[];
   for(let k=Math.max(0,Math.floor(start/100)-1);k<=Math.floor(end/100)+1;k++){
     const base=k*100;
@@ -93,7 +98,7 @@ export function pickupsNear(start:number,end:number,runSeed=0):Pickup[]{
     };
     // Every segment starts with a gentle visual/collection cue.
     fishLine('opening',[-1.6,-.8,0,.8,1.6],8,.65);
-    const plan=segmentPlan(k,runSeed);
+    const plan=segmentPlan(k,runSeed,route);
     const beforeGap=plan.placements.find(p=>p.slot==='pressure');
     for(const p of plan.placements){
       const {id,at,x,slot}=p;
@@ -140,7 +145,8 @@ export function pickupsNear(start:number,end:number,runSeed=0):Pickup[]{
 }
 export function makePlayer(runSeed=0): Player {
   return { x: 0, y: 0, z: 0, vy: 0, grounded: true, coyote: .1, elapsed: 0,
-    speed: WORLD.speedStart, boost: 0, anim: 0, score: 0, fish: 0, bounces: 0, failure: null,runSeed };
+    speed: WORLD.speedStart, boost: 0, anim: 0, score: 0, fish: 0, bounces: 0, failure: null,runSeed,
+    routeChoice:null,routeChosenAt:null };
 }
 export function simulate(player: Player, controls: Controls, collected: Set<string>, dt: number): void {
   if (player.failure) return;
@@ -165,11 +171,16 @@ export function simulate(player: Player, controls: Controls, collected: Set<stri
   const priorZ = player.z;
   const priorY = player.y;
   player.z += player.speed * dt;
+  if(player.routeChoice===null && priorZ<ROUTE_FORK.chooseZ && player.z>=ROUTE_FORK.chooseZ){
+    player.routeChoice=routeFromWorldX(player.x);
+    player.routeChosenAt=player.elapsed;
+  }
+  const route=activeRoute(player.z,player.routeChoice);
   if (!player.grounded) {
     player.vy -= WORLD.gravity * dt;
     player.y += player.vy * dt;
   }
-  const crates = cratesNear(priorZ - 2, player.z + 2, player.runSeed).filter(crate =>
+  const crates = cratesNear(priorZ - 2, player.z + 2, player.runSeed,route).filter(crate =>
     Math.abs(player.x - crate.x) < crate.width / 2 + .28 &&
     Math.abs(player.z - crate.z) < crate.depth / 2 + .3);
   let bounced = false;
@@ -209,7 +220,7 @@ export function simulate(player: Player, controls: Controls, collected: Set<stri
     }
   }
   if (player.failure) return;
-  for (const item of pickupsNear(player.z - 1.2, player.z + 1.6, player.runSeed)) {
+  for (const item of pickupsNear(player.z - 1.2, player.z + 1.6, player.runSeed,route)) {
     if (collected.has(item.id)) continue;
     if (Math.abs(player.x - item.x) < item.rangeX &&
         Math.abs(player.z - item.z) < item.rangeZ &&

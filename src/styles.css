@@ -33,3 +33,33 @@ button:disabled {opacity:.45;cursor:default}
 .stats b {display:block;font-size:19px}
 .error {color:#ffe2df!important}
 @media(min-width:610px){.game{max-width:480px;margin:auto;border-inline:2px solid #ffffff35}body{background:radial-gradient(circle,#435577,#111b2c)}}
+
+/* Branch selection appears only near the junction; never captures touch. */
+.route-choice {
+  position:absolute;
+  top:calc(163px + env(safe-area-inset-top));
+  left:50%;
+  transform:translateX(-50%);
+  width:min(91vw,330px);
+  z-index:5;
+  pointer-events:none;
+  text-align:center;
+  display:grid;
+  gap:5px;
+  padding:10px 12px;
+  border-radius:15px;
+  background:#24394bdc;
+  border:1px solid #f9e9ceaa;
+  box-shadow:0 5px 20px #20344769;
+  color:#fff8e7;
+  text-shadow:0 1px 2px #111d2c;
+}
+.route-choice strong{font-size:13px;letter-spacing:.035em}
+.route-choice small{font-size:10px;letter-spacing:.075em;color:#e2f1ef}
+.route-choice__options{display:flex;justify-content:space-between;gap:12px;font-weight:850;font-size:12px}
+.route-choice__options span:first-child{color:#a4f7db}
+.route-choice__options span:last-child{color:#ffe0a1}
+.route-choice--turn{border-color:#ffe6ac;animation:route-pulse .7s ease-in-out infinite alternate}
+.route-choice--active{background:#253650bf;opacity:.84}
+@keyframes route-pulse{from{box-shadow:0 0 4px #ffe6ac55}to{box-shadow:0 0 17px #ffe6acbd}}
+@media(max-width:370px){.route-choice{top:calc(146px + env(safe-area-inset-top));padding:8px}.route-choice__options{font-size:10px}}

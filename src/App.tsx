@@ -5,6 +5,7 @@ import { PurrkourGame } from './game/PurrkourGame';
 const initial: Snapshot = {
   mode:'menu',distance:0,altitude:0,score:0,fish:0,bank:0,
   speed:WORLD.speedStart,boost:0,bounces:0,best:0,bestScore:0,failure:null,
+  routeChoice:null,routeStage:null,
 };
 
 export function App() {
@@ -48,13 +49,28 @@ export function App() {
         <button type="button" className="icon-btn" aria-label="Mettre le jeu en pause" disabled={!running} onClick={()=>game.current?.pause()}>Ⅱ</button>
       </div>
     </header>
+    {running&&status.routeStage!==null&&(
+      <div className={`route-choice route-choice--${status.routeStage}`} aria-live="polite">
+        {status.routeStage==='approach'?<>
+          <strong>CHOISIS TON CHEMIN</strong>
+          <div className="route-choice__options">
+            <span>← 🐟 POISSONS</span>
+            <span>⭐ ACROBATIES →</span>
+          </div>
+          <small>GLISSE À GAUCHE OU À DROITE</small>
+        </>:<>
+          <strong>{status.routeChoice==='fish'?'🐟 ROUTE DES POISSONS':'⭐ ROUTE DES ACROBATIES'}</strong>
+          {status.routeStage==='turn'&&<small>VIRAGE EN COURS…</small>}
+        </>}
+      </div>
+    )}
     {running&&status.distance<42&&<div className="touch-tip" aria-hidden="true">
       <strong>↔ GLISSE LE POUCE POUR DIRIGER</strong>
       <span>↑ RELÂCHE POUR SAUTER</span>
     </div>}
     {!running&&<section className="overlay">
       <div className="dialog">
-        <div className="eyebrow">PURRKOUR · V0.10 · MOBILE FIRST</div>
+        <div className="eyebrow">PURRKOUR · V0.11 · MOBILE FIRST</div>
         <h1>Purrkour 🐈</h1>
         {error&&<p className="error">Impossible de démarrer le jeu : {error}</p>}
         {!error&&status.mode==='menu'&&<>
@@ -64,6 +80,7 @@ export function App() {
             <li>Relâche pour sauter. Les caisses deviennent des trampolines !</li>
             <li>Attrape des poissons, puis apprends à rebondir pour saisir les bonus les plus hauts.</li>
             <li>Choisis entre les poissons faciles au sol et les récompenses à risque.</li>
+            <li>Vers 250 m, choisis ta route en te plaçant à gauche ou à droite.</li>
             <li>La vitesse augmente naturellement pendant le run.</li>
           </ul>
           <button type="button" onClick={()=>game.current?.start()}>Commencer le run</button>
@@ -86,7 +103,7 @@ export function App() {
           </div>
           <button type="button" onClick={()=>game.current?.start()}>Rejouer</button>
         </>}
-        <p>Prototype mobile v0.10 · Premier directeur de patterns.</p>
+        <p>Prototype mobile v0.11 · Premier embranchement à deux voies.</p>
       </div>
     </section>}
   </main>;
