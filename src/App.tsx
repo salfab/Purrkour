@@ -49,7 +49,7 @@ export function App() {
         <button type="button" className="icon-btn" aria-label="Mettre le jeu en pause" disabled={!running} onClick={()=>game.current?.pause()}>Ⅱ</button>
       </div>
     </header>
-    {running&&status.routeStage!==null&&(
+    {running&&status.routeStage!==null&&(status.routeStage!=='active'||status.distance<282)&&(
       <div className={`route-choice route-choice--${status.routeStage}`} aria-live="polite">
         {status.routeStage==='approach'?<>
           <strong>CHOISIS TON CHEMIN</strong>
