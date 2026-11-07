@@ -6,7 +6,7 @@ import { ScenicBackdrop } from './ScenicBackdrop';
 import {RouteForkView} from './RouteForkView';
 import {forkStage} from './routeChoices';
 import {routePose} from './routeGeometry';
-import {frameRouteCamera} from './routeCamera';
+import {cameraBlendFactor,frameRouteCamera} from './routeCamera';
 
 export type UpdateListener = (snapshot: Snapshot) => void;
 
@@ -21,6 +21,8 @@ function storeNumber(key: string, value: number): void {
 export class PurrkourGame {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly camera=new THREE.PerspectiveCamera(64,1,.1,180);
+  private readonly desiredCamera=new THREE.PerspectiveCamera(64,1,.1,180);
+  private cameraInitialized=false;
   private readonly scene=new THREE.Scene();
   private readonly backdrop=new ScenicBackdrop();
   private readonly world=new ArtWorld();
@@ -78,12 +80,15 @@ export class PurrkourGame {
     const width=Math.max(1,bounds.width),height=Math.max(1,bounds.height);
     this.renderer.setSize(width,height,false);
     this.camera.aspect=width/height;
+    this.desiredCamera.aspect=width/height;
     this.camera.updateProjectionMatrix();
+    this.desiredCamera.updateProjectionMatrix();
   }
   start():void{
     const runSeed=Date.now()|0;
     this.player=makePlayer(runSeed);this.collected.clear();
     this.world.resetRun(runSeed);
+    this.cameraInitialized=false;
     this.accumulator=0;this.hudTimer=0;
     this.mode='running';this.controls.setEnabled(true);
     this.playMusic();
@@ -133,9 +138,23 @@ export class PurrkourGame {
     this.world.update(this.player,this.collected);
     this.fork.update(this.player.routeChoice,this.player.elapsed,this.player.z);
     frameRouteCamera(
-      this.camera,this.player.z,this.player.routeChoice,this.pitch,
+      this.desiredCamera,this.player.z,this.player.routeChoice,this.pitch,
       groundHeight,WORLD.cameraDistance,WORLD.cameraHeight,
     );
+    if(!this.cameraInitialized){
+      this.camera.position.copy(this.desiredCamera.position);
+      this.camera.quaternion.copy(this.desiredCamera.quaternion);
+      this.camera.fov=this.desiredCamera.fov;
+      this.cameraInitialized=true;
+    }else{
+      const smoothing=cameraBlendFactor(dt);
+      this.camera.position.lerp(this.desiredCamera.position,smoothing);
+      this.camera.quaternion.slerp(this.desiredCamera.quaternion,smoothing);
+      this.camera.fov+=
+        (this.desiredCamera.fov-this.camera.fov)*smoothing;
+    }
+    this.camera.updateProjectionMatrix();
+    this.camera.updateMatrixWorld();
     this.world.setTurnLean(0);
     this.backdrop.update(
       this.player.z,groundHeight(this.player.z),

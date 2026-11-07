@@ -21,12 +21,14 @@ export function frameRouteCamera(
   baseDistance:number,
   baseHeight:number,
 ):void{
-  const bend=route===null?0:turnFraming(distance);
+  // The player's choice must not suddenly activate a +5 m camera retreat.
+  // Widen framing gradually BEFORE the fork, even before a branch is chosen.
+  const bend=turnFraming(distance);
   const position=routePose(distance,route);
   const future=routePose(distance+6,route);
   const cameraYaw=position.yaw+(future.yaw-position.yaw)*.16;
-  const distanceBehind=baseDistance+5*bend;
-  const height=groundHeight(distance)+baseHeight+1.6*bend;
+  const distanceBehind=baseDistance+1.5*bend;
+  const height=groundHeight(distance)+baseHeight+.45*bend;
   const forwardX=Math.sin(cameraYaw);
   const forwardZ=Math.cos(cameraYaw);
   camera.position.set(
@@ -42,7 +44,7 @@ export function frameRouteCamera(
     target.z,
   );
 
-  const defaultFov=64+11*bend;
+  const defaultFov=64+13*bend;
   camera.fov=defaultFov;
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
@@ -65,4 +67,14 @@ export function frameRouteCamera(
     camera.fov=Math.min(106,Math.max(defaultFov,neededFov));
     camera.updateProjectionMatrix();
   }
+}
+
+
+/**
+ * Frame-independent exponential smoothing used between desired camera poses.
+ * At 60 or 120 FPS, the same amount of real time gives the same result.
+ */
+export function cameraBlendFactor(dt:number,halfLife=.16):number {
+  if(!Number.isFinite(dt)||dt<=0)return 0;
+  return 1-Math.pow(.5,Math.min(.08,dt)/halfLife);
 }

@@ -217,3 +217,13 @@ Après retour utilisateur, la v0.12 ne correspondait pas à l’effet recherché
 - **Optimisation mobile :** seules deux très courtes prévisualisations de branches et le raccord factice sont dessinés. L'ancienne représentation complète des deux parcours est supprimée.
 
 La branche alternative ne correspond pas à une route réellement empruntable : ce n'est qu'un leurre géométrique. Cette version doit encore être vérifiée sur téléphone pour le cadre, la perspective et la transition du décor.
+
+
+## 14. Transition caméra et sprites arrière (v0.14)
+
+- La caméra anticipe désormais le cadrage **avant** le choix de branche, même quand aucune direction n'est encore choisie. Le choix à 250 m ne déclenche donc plus soudainement un recul de plusieurs mètres.
+- Recul supplémentaire pendant le S réduit à **1,5 m** (contre 5 m), variation de hauteur réduite à **0,45 m** ; champ un peu plus large pour préserver la piste entière.
+- Position, orientation et FOV de la caméra sont interpolés exponentiellement avec demi-vie de 0,16 s, indépendante du taux de rafraîchissement.
+- **Centre :** l'atlas illustré WebP avec quatre poses de course, vraie transparence, est chargé depuis `public/assets/character/cat_rear_strip.webp`. Le chat Canvas n'est conservé que comme secours.
+- **Gauche et droite :** mêmes frames du spritesheet kawaii latéral, avec **UV miroir** à gauche plutôt qu'une échelle X négative qui pourrait perturber le rendu du billboard.
+- La course et les collisions ne sont pas modifiées.

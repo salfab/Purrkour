@@ -70,7 +70,7 @@ export function App() {
     </div>}
     {!running&&<section className="overlay">
       <div className="dialog">
-        <div className="eyebrow">PURRKOUR · V0.13 · MOBILE FIRST</div>
+        <div className="eyebrow">PURRKOUR · V0.14 · MOBILE FIRST</div>
         <h1>Purrkour 🐈</h1>
         {error&&<p className="error">Impossible de démarrer le jeu : {error}</p>}
         {!error&&status.mode==='menu'&&<>
@@ -103,7 +103,7 @@ export function App() {
           </div>
           <button type="button" onClick={()=>game.current?.start()}>Rejouer</button>
         </>}
-        <p>Prototype mobile v0.13 · Court détour et réunion décorative à 45°.</p>
+        <p>Prototype mobile v0.14 · Caméra adoucie et chat kawaii animé de dos.</p>
       </div>
     </section>}
   </main>;

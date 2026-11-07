@@ -236,11 +236,14 @@ export class ArtWorld {
   private readonly wallPropMaterials:{window:THREE.MeshBasicMaterial;banner:THREE.MeshBasicMaterial};
   private readonly catAtlas:THREE.Texture;
   private catAtlasReady=false;
+  private readonly rearAtlas:THREE.Texture;
+  private rearAtlasReady=false;
   private readonly catCanvas:HTMLCanvasElement;
   private readonly catTexture:THREE.CanvasTexture;
   private readonly rearCanvas:HTMLCanvasElement;
   private readonly rearTexture:THREE.CanvasTexture;
   private backView=false;
+  private lastMirrored=false;
   private readonly catSprite:THREE.Sprite;
   private readonly shadow:THREE.Mesh<THREE.CircleGeometry,THREE.MeshBasicMaterial>;
   private lastFrame=-1;
@@ -319,6 +322,32 @@ export class ArtWorld {
     atlas.minFilter=THREE.LinearMipmapLinearFilter;
     this.catAtlas=atlas;
     this.textures.push(atlas);
+
+    // Transparent, illustrated rear-running animation (4-frame atlas).
+    // The procedural Canvas rear cat is only a fallback during loading/error.
+    const rearAtlas=new THREE.TextureLoader().load(
+      `${import.meta.env.BASE_URL}assets/character/cat_rear_strip.webp`,
+      loaded=>{
+        loaded.colorSpace=THREE.SRGBColorSpace;
+        loaded.wrapS=THREE.RepeatWrapping;
+        loaded.wrapT=THREE.ClampToEdgeWrapping;
+        loaded.repeat.set(.25,1);
+        this.rearAtlasReady=true;
+        this.lastFrame=-1;
+        this.drawCat(0,this.backView,this.lastMirrored);
+      },
+      undefined,
+      ()=>console.warn('Purrkour: rear kawaii atlas unavailable; using Canvas fallback'),
+    );
+    rearAtlas.colorSpace=THREE.SRGBColorSpace;
+    rearAtlas.wrapS=THREE.RepeatWrapping;
+    rearAtlas.wrapT=THREE.ClampToEdgeWrapping;
+    rearAtlas.repeat.set(.25,1);
+    rearAtlas.generateMipmaps=false;
+    rearAtlas.magFilter=THREE.LinearFilter;
+    rearAtlas.minFilter=THREE.LinearFilter;
+    this.rearAtlas=rearAtlas;
+    this.textures.push(rearAtlas);
     this.drawCat(0,true);
   }
   private loadPaintedTexture(filename:string,material:THREE.MeshLambertMaterial,repeatX:number,repeatY:number):void{
@@ -342,12 +371,24 @@ export class ArtWorld {
     texture.anisotropy=2;
     this.textures.push(texture);
   }
-  private drawCat(index:number,back:boolean):void{
-    if(this.lastFrame===index && this.backView===back)return;
+  private drawCat(index:number,back:boolean,mirrored=false):void{
+    if(this.lastFrame===index&&this.backView===back&&this.lastMirrored===mirrored)return;
     this.lastFrame=index;
     this.backView=back;
+    this.lastMirrored=mirrored;
     const material=this.catSprite.material as THREE.SpriteMaterial;
+
     if(back){
+      this.catSprite.scale.x=1.9;
+      if(this.rearAtlasReady){
+        // Four transparent frames in a single horizontal row.
+        this.rearAtlas.offset.set((index%4)*.25,0);
+        if(material.map!==this.rearAtlas){
+          material.map=this.rearAtlas;
+          material.needsUpdate=true;
+        }
+        return;
+      }
       const ctx=this.rearCanvas.getContext('2d');
       if(!ctx)return;
       rearCatFrame(ctx,index%4);
@@ -358,18 +399,29 @@ export class ArtWorld {
       }
       return;
     }
+
     if(this.catAtlasReady){
-      this.catAtlas.offset.set((index%4)*.25,1-(Math.floor(index/4)+1)*.5);
+      // UV mirroring avoids negative sprite scales, which can reverse triangle
+      // winding/culling. Same illustrated sprites are shared on both sides.
+      const cell=index%4;
+      this.catAtlas.repeat.set(mirrored?-.25:.25,.5);
+      this.catAtlas.offset.set(
+        (cell+(mirrored?1:0))*.25,
+        1-(Math.floor(index/4)+1)*.5,
+      );
+      this.catSprite.scale.x=1.9;
       if(material.map!==this.catAtlas){
         material.map=this.catAtlas;
         material.needsUpdate=true;
       }
       return;
     }
+
     const ctx=this.catCanvas.getContext('2d');
     if(!ctx)return;
     catFrame(ctx,index);
     this.catTexture.needsUpdate=true;
+    this.catSprite.scale.x=mirrored?-1.9:1.9;
     if(material.map!==this.catTexture){
       material.map=this.catTexture;
       material.needsUpdate=true;
@@ -571,15 +623,12 @@ export class ArtWorld {
     }
     const position=routePoint(player.z,player.x,player.routeChoice);
     this.cat.position.set(position.x,player.y,position.z);
-    // Existing illustrated side atlas looks toward screen-right.
-    // Mirror on SCREEN LEFT (positive local X in our behind-the-cat camera).
     const sideLeft=player.x>.48;
-    this.catSprite.scale.x=sideLeft?-1.9:1.9;
     this.shadow.position.y=groundHeight(player.z)-player.y+.025;
     (this.shadow.material as THREE.MeshBasicMaterial).opacity=player.grounded?.3:Math.max(.08,.3-(player.y-groundHeight(player.z))*.055);
     const centered=Math.abs(player.x)<.48;
     const frame=player.boost>0?7:!player.grounded?6:Math.floor(player.anim)%6;
-    this.drawCat(frame,centered);
+    this.drawCat(frame,centered,sideLeft);
   }
   dispose():void{
     this.resetRun(0);

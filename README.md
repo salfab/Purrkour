@@ -99,3 +99,8 @@ Les routes de Purrkour sont désormais **des courbes dans la scène 3D**, pas se
 ## Court détour, faux raccord et cadrage adaptatif (v0.13)
 
 La bifurcation v0.12 à longues courbes a été remplacée par une inflexion en S de 28 mètres avant une nouvelle ligne droite, afin de conserver la piste à l'écran en mobile. Une petite route visuelle de 19 mètres rejoint le tracé vers 410 m à 45°, en venant du côté non choisi. La caméra s'adapte à la courbure et à la largeur du viewport, et le sprite de profil est inversé sur le côté gauche. Voir [docs/GAMEPLAY.md](docs/GAMEPLAY.md).
+
+
+## Caméra et personnage v0.14
+
+Un cadrage anticipé avant la bifurcation et un lissage indépendant du FPS évitent le brusque recul de caméra au choix de branche. Le chat utilise au centre le spritesheet arrière illustré à quatre poses (`cat_rear_strip.webp`, alpha transparent) et l'atlas latéral existant à gauche/droite, avec UV inversés à gauche. Les sprites Canvas de secours restent disponibles. Voir [GAMEPLAY.md](docs/GAMEPLAY.md).
