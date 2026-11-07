@@ -159,6 +159,63 @@ function catFrame(ctx: CanvasRenderingContext2D, frame: number): void {
   if(boost){ctx.fillStyle='#8af5ff';for(let i=0;i<3;i++)ctx.fillRect(4+i*10,73+i*8,20,4);}
   ctx.restore();
 }
+/** A tiny transparent four-pose rear animation for the centered runner. */
+function rearCatFrame(ctx:CanvasRenderingContext2D,frame:number):void{
+  ctx.clearRect(0,0,128,128);
+  const bob=frame%2===0?2:0;
+  const footLift=frame%2===0?7:0;
+  const tailSide=frame%4<2?-1:1;
+  ctx.save();ctx.translate(0,bob);
+  ctx.lineJoin='round';ctx.lineCap='round';
+  const outline='#7c4736';
+  // Warm furry body from the back, with the original kitty's white socks.
+  ctx.fillStyle='#efa35f';ctx.strokeStyle=outline;ctx.lineWidth=3.6;
+  ctx.beginPath();ctx.ellipse(64,85,32,29,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+  // Tail curves around the silhouette and swings from frame to frame.
+  const tailOrigin=64+tailSide*17;
+  ctx.strokeStyle=outline;ctx.lineWidth=21;
+  ctx.beginPath();ctx.moveTo(tailOrigin,92);ctx.quadraticCurveTo(64+tailSide*49,80,64+tailSide*40,47);ctx.stroke();
+  ctx.strokeStyle='#f1a553';ctx.lineWidth=15;
+  ctx.beginPath();ctx.moveTo(tailOrigin,92);ctx.quadraticCurveTo(64+tailSide*49,80,64+tailSide*40,47);ctx.stroke();
+  ctx.strokeStyle='#fff3e6';ctx.lineWidth=11;
+  ctx.beginPath();ctx.moveTo(64+tailSide*41,55);ctx.quadraticCurveTo(64+tailSide*41,51,64+tailSide*40,47);ctx.stroke();
+  // Two alternating back paws.
+  for(let i=0;i<2;i++){
+    const lift=i===frame%2?footLift:0;
+    ctx.fillStyle='#fff2df';ctx.strokeStyle='#a66c54';ctx.lineWidth=2;
+    ctx.beginPath();ctx.ellipse(50+i*28,106-lift,12,14,i===0?.18:-.18,0,Math.PI*2);
+    ctx.fill();ctx.stroke();
+    ctx.fillStyle='#e89c97';
+    for(let p=0;p<3;p++){
+      ctx.beginPath();ctx.arc(44+i*28+p*5,109-lift,2.2,0,Math.PI*2);ctx.fill();
+    }
+  }
+  // Neck scarf visible behind the ears.
+  ctx.fillStyle='#cb5055';ctx.strokeStyle='#8b4443';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.ellipse(64,69,30,9,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+  // Orange head, two oversized ears and creamy cheeks.
+  ctx.fillStyle='#f4a459';ctx.strokeStyle=outline;ctx.lineWidth=4;
+  ctx.beginPath();ctx.moveTo(34,44);ctx.lineTo(30,14);ctx.quadraticCurveTo(45,14,52,32);
+  ctx.lineTo(77,32);ctx.quadraticCurveTo(90,14,98,14);
+  ctx.lineTo(95,46);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.fillStyle='#ffc6b4';ctx.beginPath();
+  ctx.moveTo(35,20);ctx.lineTo(37,34);ctx.lineTo(50,33);ctx.closePath();ctx.fill();
+  ctx.beginPath();ctx.moveTo(93,20);ctx.lineTo(91,34);ctx.lineTo(78,33);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#f4a65e';ctx.strokeStyle=outline;ctx.lineWidth=3.3;
+  ctx.beginPath();ctx.ellipse(64,49,37,31,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#fff4e3';
+  ctx.beginPath();ctx.ellipse(34,63,9,10,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(94,63,9,10,0,0,Math.PI*2);ctx.fill();
+  // Tiger stripes, readable even when the sprite is 80px on mobile.
+  ctx.strokeStyle='#dc773c';ctx.lineWidth=6;
+  for(const dx of [-15,0,15]){
+    ctx.beginPath();ctx.moveTo(64+dx,26);ctx.quadraticCurveTo(64+dx*.6,36,64+dx*.7,47);ctx.stroke();
+  }
+  ctx.strokeStyle='#d67c47';ctx.lineWidth=5;
+  ctx.beginPath();ctx.moveTo(55,80);ctx.lineTo(51,93);ctx.moveTo(72,80);ctx.lineTo(76,92);ctx.stroke();
+  ctx.restore();
+}
+
 export class ArtWorld {
   readonly group=new THREE.Group();
   readonly cat=new THREE.Group();
@@ -181,6 +238,9 @@ export class ArtWorld {
   private catAtlasReady=false;
   private readonly catCanvas:HTMLCanvasElement;
   private readonly catTexture:THREE.CanvasTexture;
+  private readonly rearCanvas:HTMLCanvasElement;
+  private readonly rearTexture:THREE.CanvasTexture;
+  private backView=false;
   private readonly catSprite:THREE.Sprite;
   private readonly shadow:THREE.Mesh<THREE.CircleGeometry,THREE.MeshBasicMaterial>;
   private lastFrame=-1;
@@ -225,6 +285,11 @@ export class ArtWorld {
     this.catTexture=new THREE.CanvasTexture(this.catCanvas);
     this.catTexture.colorSpace=THREE.SRGBColorSpace;
     this.textures.push(this.catTexture);
+    this.rearCanvas=document.createElement('canvas');
+    this.rearCanvas.width=128;this.rearCanvas.height=128;
+    this.rearTexture=new THREE.CanvasTexture(this.rearCanvas);
+    this.rearTexture.colorSpace=THREE.SRGBColorSpace;
+    this.textures.push(this.rearTexture);
     const catMaterial=new THREE.SpriteMaterial({map:this.catTexture,transparent:true,alphaTest:.025,depthWrite:false});
     this.materials.push(catMaterial);
     this.catSprite=new THREE.Sprite(catMaterial);this.catSprite.scale.set(1.9,1.9,1);this.catSprite.position.y=.85;this.catSprite.renderOrder=3;
@@ -243,10 +308,8 @@ export class ArtWorld {
         loaded.wrapT=THREE.RepeatWrapping;
         loaded.repeat.set(.25,.5);
         this.catAtlasReady=true;
-        catMaterial.map=loaded;
-        catMaterial.needsUpdate=true;
         this.lastFrame=-1;
-        this.drawCat(0);
+        this.drawCat(0,this.backView);
       },
       undefined,
       ()=>console.warn('Purrkour: kawaii cat atlas unavailable; using fallback'),
@@ -256,7 +319,7 @@ export class ArtWorld {
     atlas.minFilter=THREE.LinearMipmapLinearFilter;
     this.catAtlas=atlas;
     this.textures.push(atlas);
-    this.drawCat(0);
+    this.drawCat(0,true);
   }
   private loadPaintedTexture(filename:string,material:THREE.MeshLambertMaterial,repeatX:number,repeatY:number):void{
     const texture=new THREE.TextureLoader().load(
@@ -279,16 +342,38 @@ export class ArtWorld {
     texture.anisotropy=2;
     this.textures.push(texture);
   }
-  private drawCat(index:number):void{
-    if(this.lastFrame===index)return;
+  private drawCat(index:number,back:boolean):void{
+    if(this.lastFrame===index && this.backView===back)return;
     this.lastFrame=index;
-    const ctx=this.catCanvas.getContext('2d');
-    if(!ctx)return;
-    if(this.catAtlasReady){
-      this.catAtlas.offset.set((index%4)*.25,1-(Math.floor(index/4)+1)*.5);
+    this.backView=back;
+    const material=this.catSprite.material as THREE.SpriteMaterial;
+    if(back){
+      const ctx=this.rearCanvas.getContext('2d');
+      if(!ctx)return;
+      rearCatFrame(ctx,index%4);
+      this.rearTexture.needsUpdate=true;
+      if(material.map!==this.rearTexture){
+        material.map=this.rearTexture;
+        material.needsUpdate=true;
+      }
       return;
     }
-    catFrame(ctx,index);this.catTexture.needsUpdate=true;
+    if(this.catAtlasReady){
+      this.catAtlas.offset.set((index%4)*.25,1-(Math.floor(index/4)+1)*.5);
+      if(material.map!==this.catAtlas){
+        material.map=this.catAtlas;
+        material.needsUpdate=true;
+      }
+      return;
+    }
+    const ctx=this.catCanvas.getContext('2d');
+    if(!ctx)return;
+    catFrame(ctx,index);
+    this.catTexture.needsUpdate=true;
+    if(material.map!==this.catTexture){
+      material.map=this.catTexture;
+      material.needsUpdate=true;
+    }
   }
   private box(group:THREE.Group,x:number,y:number,z:number,w:number,h:number,d:number,material:THREE.Material):void{
     const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
@@ -491,7 +576,9 @@ export class ArtWorld {
     this.catSprite.scale.x=player.x<-.28?-1.9:1.9;
     this.shadow.position.y=groundHeight(player.z)-player.y+.025;
     (this.shadow.material as THREE.MeshBasicMaterial).opacity=player.grounded?.3:Math.max(.08,.3-(player.y-groundHeight(player.z))*.055);
-    this.drawCat(player.boost>0?7:!player.grounded?6:Math.floor(player.anim)%6);
+    const centered=Math.abs(player.x)<.48;
+    const frame=player.boost>0?7:!player.grounded?6:Math.floor(player.anim)%6;
+    this.drawCat(frame,centered);
   }
   dispose():void{
     this.resetRun(0);
