@@ -1,177 +1,231 @@
 import * as THREE from 'three';
 import {groundHeight,WORLD} from './core';
 import {ROUTE_FORK,type RouteChoice} from './routeChoices';
-import {ROUTE_CURVE,ROUTE_JOIN_DISTANCE,routePoint,alternativeBranch} from './routeGeometry';
+import {
+  ROUTE_CURVE,ROUTE_DETOUR_END,FAKE_MERGE,
+  routePoint,fakeMergePoint,alternativeBranch,type WorldPoint,
+} from './routeGeometry';
 
-/** Decorative other branch; the chosen branch is rendered by ArtWorld. */
+type RoadSampler=(distance:number,lateral:number,height:number)=>WorldPoint;
+
+/**
+ * Lightweight optical illusion, not a graph:
+ *   - two SHORT approach ribbons while the player chooses;
+ *   - only ArtWorld renders the chosen playable road;
+ *   - one SHORT 45° slip road appears near the reunion.
+ *
+ * The old v0.12 rendered hundreds of metres of both tracks for no gameplay
+ * reason. This version never creates such a mesh.
+ */
 export class RouteForkView {
   readonly group=new THREE.Group();
   private readonly materials:THREE.Material[]=[];
   private readonly textures:THREE.Texture[]=[];
-  private readonly branches:Record<RouteChoice,THREE.Group>;
-  private readonly markers=new Map<RouteChoice,THREE.Sprite>();
+  private readonly pavement:THREE.MeshLambertMaterial;
+  private readonly previews:Record<RouteChoice,THREE.Group>;
+  private readonly portals:Record<RouteChoice,THREE.Group>;
+  private readonly joins:Record<RouteChoice,THREE.Group>;
+  private readonly signs=new Map<RouteChoice,THREE.Sprite>();
   private disposed=false;
 
   constructor(){
-    const pavement=new THREE.MeshLambertMaterial({color:'#edc9a3',side:THREE.DoubleSide});
-    this.materials.push(pavement);
-    const image=new THREE.TextureLoader().load(
+    this.pavement=new THREE.MeshLambertMaterial({color:'#f0caa9',side:THREE.DoubleSide});
+    this.materials.push(this.pavement);
+    const texture=new THREE.TextureLoader().load(
       `${import.meta.env.BASE_URL}assets/textures/track_pavers.webp`,
       loaded=>{
         if(this.disposed)return;
         loaded.colorSpace=THREE.SRGBColorSpace;
         loaded.wrapS=THREE.RepeatWrapping;
         loaded.wrapT=THREE.RepeatWrapping;
-        pavement.map=loaded;
-        pavement.needsUpdate=true;
+        this.pavement.map=loaded;
+        this.pavement.needsUpdate=true;
       },
-      undefined,()=>console.warn('Purrkour: fork paving fallback'),
+      undefined,
+      ()=>console.warn('Purrkour: fork paving fallback'),
     );
-    image.colorSpace=THREE.SRGBColorSpace;
-    this.textures.push(image);
-    this.branches={fish:this.buildRoad('fish',pavement),acro:this.buildRoad('acro',pavement)};
-    this.group.add(this.branches.fish,this.branches.acro);
+    texture.colorSpace=THREE.SRGBColorSpace;
+    this.textures.push(texture);
+    this.previews={
+      fish:this.buildPreview('fish'),
+      acro:this.buildPreview('acro'),
+    };
+    this.portals={
+      fish:this.buildPortal('fish'),
+      acro:this.buildPortal('acro'),
+    };
+    this.joins={
+      fish:this.buildJoin('fish'),
+      acro:this.buildJoin('acro'),
+    };
+    this.group.add(
+      this.previews.fish,this.previews.acro,
+      this.portals.fish,this.portals.acro,
+      this.joins.fish,this.joins.acro,
+    );
   }
+
   private material(color:string):THREE.MeshLambertMaterial{
     const m=new THREE.MeshLambertMaterial({color});
     this.materials.push(m);
     return m;
   }
-  private box(parent:THREE.Group,x:number,y:number,z:number,w:number,h:number,d:number,mat:THREE.Material):void{
-    const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
-    mesh.position.set(x,y,z);parent.add(mesh);
+
+  private addRoad(
+    group:THREE.Group,
+    start:number,
+    end:number,
+    sampler:RoadSampler,
+    withCurbs:boolean,
+  ):void{
+    const vertices:number[]=[];
+    const uv:number[]=[];
+    const half=WORLD.trackWidth/2;
+    for(let s=start;s<end;s+=.45){
+      const next=Math.min(end,s+.45);
+      const a=sampler(s,-half,groundHeight(s)-.055);
+      const b=sampler(next,-half,groundHeight(next)-.055);
+      const c=sampler(s,half,groundHeight(s)-.055);
+      const d=sampler(next,half,groundHeight(next)-.055);
+      vertices.push(
+        a.x,a.y,a.z,b.x,b.y,b.z,c.x,c.y,c.z,
+        b.x,b.y,b.z,d.x,d.y,d.z,c.x,c.y,c.z,
+      );
+      uv.push(
+        0,s*.45,0,next*.45,2.5,s*.45,
+        0,next*.45,2.5,next*.45,2.5,s*.45,
+      );
+    }
+    const geometry=new THREE.BufferGeometry();
+    geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+    geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+    geometry.computeVertexNormals();
+    group.add(new THREE.Mesh(geometry,this.pavement));
+
+    if(!withCurbs)return;
+    const curbMaterial=this.material('#f8d9a9');
+    for(let s=start+1;s<end-1;s+=2.1){
+      for(const lateral of [-half-.1,half+.1]){
+        const pos=sampler(s,lateral,groundHeight(s)+.11);
+        const curb=new THREE.Mesh(new THREE.BoxGeometry(.18,.22,2.15),curbMaterial);
+        curb.position.set(pos.x,pos.y,pos.z);
+        curb.rotation.y=pos.yaw;
+        group.add(curb);
+      }
+    }
   }
+
+  private buildPreview(choice:RouteChoice):THREE.Group{
+    const preview=new THREE.Group();
+    const sampler:RoadSampler=(s,x,y)=>routePoint(s,x,choice,y);
+    // Just 22 metres to make the split readable; the chosen path takes over.
+    this.addRoad(
+      preview,ROUTE_CURVE.split,Math.min(ROUTE_DETOUR_END,272),sampler,true,
+    );
+    return preview;
+  }
+
+  private buildJoin(chosen:RouteChoice):THREE.Group{
+    const join=new THREE.Group();
+    const sampler:RoadSampler=(s,x,y)=>fakeMergePoint(s,x,chosen,y);
+    // Not connected to anything behind the visible window. It arrives at 45°
+    // from the side the player DID NOT choose, and merges exactly at 410 m.
+    this.addRoad(join,FAKE_MERGE.start,FAKE_MERGE.end,sampler,true);
+    return join;
+  }
+
   private icon(choice:RouteChoice):THREE.CanvasTexture{
     const canvas=document.createElement('canvas');
     canvas.width=256;canvas.height=176;
-    const c=canvas.getContext('2d');
-    if(c){
+    const ctx=canvas.getContext('2d');
+    if(ctx){
       const isFish=choice==='fish';
-      c.fillStyle='#334c5b';c.beginPath();c.roundRect(7,7,242,162,27);c.fill();
-      c.lineWidth=7;c.strokeStyle='#fff1d7';c.stroke();
-      c.fillStyle=isFish?'#64c7bd':'#efb867';
-      c.beginPath();c.roundRect(18,18,220,140,18);c.fill();
-      c.fillStyle='#fff7e7';
-      c.save();c.translate(128,73);
+      ctx.fillStyle='#314b5a';ctx.beginPath();ctx.roundRect(7,7,242,162,25);ctx.fill();
+      ctx.strokeStyle='#fff4dc';ctx.lineWidth=7;ctx.stroke();
+      ctx.fillStyle=isFish?'#65c9b7':'#f0b96b';
+      ctx.beginPath();ctx.roundRect(18,18,220,140,19);ctx.fill();
+      ctx.fillStyle='#fff9ed';
+      ctx.save();ctx.translate(128,72);
       if(isFish){
-        c.beginPath();c.ellipse(-7,0,40,22,0,0,Math.PI*2);c.fill();
-        c.beginPath();c.moveTo(25,0);c.lineTo(62,-24);c.lineTo(62,24);c.closePath();c.fill();
-        c.fillStyle='#234156';c.beginPath();c.arc(-27,-6,4,0,Math.PI*2);c.fill();
+        ctx.beginPath();ctx.ellipse(-7,0,40,22,0,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.moveTo(25,0);ctx.lineTo(62,-24);ctx.lineTo(62,24);ctx.closePath();ctx.fill();
+        ctx.fillStyle='#304858';ctx.beginPath();ctx.arc(-26,-6,4,0,Math.PI*2);ctx.fill();
       }else{
-        c.beginPath();
+        ctx.beginPath();
         for(let i=0;i<10;i++){
-          const a=-Math.PI/2+i*Math.PI/5,r=i%2===0?37:16;
-          if(!i)c.moveTo(Math.cos(a)*r,Math.sin(a)*r);
-          else c.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+          const a=-Math.PI/2+i*Math.PI/5;
+          const r=i%2===0?37:16;
+          if(i===0)ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r);
+          else ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);
         }
-        c.closePath();c.fill();
+        ctx.closePath();ctx.fill();
       }
-      c.restore();
-      c.textAlign='center';c.textBaseline='middle';
-      c.fillStyle='#263b49';c.font='bold 23px system-ui';
-      c.fillText(isFish?'POISSONS':'ACROBATIES',128,133,208);
+      ctx.restore();
+      ctx.fillStyle='#263d4f';ctx.font='bold 22px system-ui';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(isFish?'POISSONS':'ACROBATIES',128,132,208);
     }
-    const tex=new THREE.CanvasTexture(canvas);
-    tex.colorSpace=THREE.SRGBColorSpace;
-    this.textures.push(tex);
-    return tex;
+    const texture=new THREE.CanvasTexture(canvas);
+    texture.colorSpace=THREE.SRGBColorSpace;
+    this.textures.push(texture);
+    return texture;
   }
-  private buildRoad(choice:RouteChoice,pavement:THREE.Material):THREE.Group{
+
+  private buildPortal(choice:RouteChoice):THREE.Group{
+    const z=ROUTE_FORK.portalZ;
+    const position=routePoint(z,0,choice,groundHeight(z));
     const group=new THREE.Group();
-    const verts:number[]=[],uv:number[]=[];
-    const sideVerts:number[]=[],sideUv:number[]=[];
-    const half=WORLD.trackWidth/2;
-    for(let s=ROUTE_CURVE.split;s<ROUTE_JOIN_DISTANCE;s+=.65){
-      const n=Math.min(ROUTE_JOIN_DISTANCE,s+.65);
-      const a=routePoint(s,-half,choice,groundHeight(s)-.055);
-      const b=routePoint(n,-half,choice,groundHeight(n)-.055);
-      const c=routePoint(s,half,choice,groundHeight(s)-.055);
-      const d=routePoint(n,half,choice,groundHeight(n)-.055);
-      verts.push(a.x,a.y,a.z,b.x,b.y,b.z,c.x,c.y,c.z,
-                 b.x,b.y,b.z,d.x,d.y,d.z,c.x,c.y,c.z);
-      uv.push(0,s*.45,0,n*.45,2.5,s*.45,0,n*.45,2.5,n*.45,2.5,s*.45);
-      // Lower streets support the side houses even on the decorative branch.
-      const lower=groundHeight(s)-1.8;
-      const lowerNext=groundHeight(n)-1.8;
-      for(const [x0,x1] of [[-9.5,-2.7],[2.7,9.5]] as const){
-        const e=routePoint(s,x0,choice,lower);
-        const f=routePoint(n,x0,choice,lowerNext);
-        const g=routePoint(s,x1,choice,lower);
-        const h=routePoint(n,x1,choice,lowerNext);
-        sideVerts.push(e.x,e.y,e.z,f.x,f.y,f.z,g.x,g.y,g.z,
-                       f.x,f.y,f.z,h.x,h.y,h.z,g.x,g.y,g.z);
-        sideUv.push(x0*.2,s*.35,x0*.2,n*.35,x1*.2,s*.35,
-                    x0*.2,n*.35,x1*.2,n*.35,x1*.2,s*.35);
-      }
+    group.position.set(position.x,position.y,position.z);
+    group.rotation.y=position.yaw;
+    const wood=this.material('#a87856');
+    const accent=this.material(choice==='fish'?'#69c8b7':'#f0ba69');
+    const box=(x:number,y:number,w:number,h:number,d:number,mat:THREE.Material):void=>{
+      const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+      mesh.position.set(x,y,0);
+      group.add(mesh);
+    };
+    for(const x of [-.94,.94]){
+      box(x,1.21,.20,2.42,.30,wood);
+      box(x,2.35,.31,.19,.36,accent);
     }
-    const geo=new THREE.BufferGeometry();
-    geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
-    geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
-    geo.computeVertexNormals();
-    group.add(new THREE.Mesh(geo,pavement));
-    const sideGeometry=new THREE.BufferGeometry();
-    sideGeometry.setAttribute('position',new THREE.Float32BufferAttribute(sideVerts,3));
-    sideGeometry.setAttribute('uv',new THREE.Float32BufferAttribute(sideUv,2));
-    sideGeometry.computeVertexNormals();
-    const sidewalk=this.material('#e0bea0');
-    group.add(new THREE.Mesh(sideGeometry,sidewalk));
-    const retaining=this.material('#c9a080');
-    const edging=this.material('#ffe0ae');
-    for(let s=ROUTE_CURVE.split+1;s<ROUTE_JOIN_DISTANCE-1;s+=3){
-      for(const lane of [-1,1]){
-        const point=routePoint(s,lane*(half+.09),choice,groundHeight(s)+.1);
-        const curb=new THREE.Mesh(new THREE.BoxGeometry(.18,.22,3),edging);
-        curb.position.set(point.x,point.y,point.z);
-        curb.rotation.y=point.yaw;
-        group.add(curb);
-        const wall=new THREE.Mesh(new THREE.BoxGeometry(.16,1.75,3),retaining);
-        wall.position.set(point.x,point.y-.95,point.z);
-        wall.rotation.y=point.yaw;
-        group.add(wall);
-      }
-    }
-    const portalPoint=routePoint(ROUTE_FORK.portalZ,0,choice,groundHeight(ROUTE_FORK.portalZ));
-    const portal=new THREE.Group();
-    portal.position.set(portalPoint.x,portalPoint.y,portalPoint.z);
-    portal.rotation.y=portalPoint.yaw;
-    group.add(portal);
-    const wood=this.material('#a97654');
-    const trim=this.material(choice==='fish'?'#69c5b6':'#f1b65a');
-    for(const x of [-1,1]){
-      this.box(portal,x,1.2,0,.2,2.4,.3,wood);
-      this.box(portal,x,2.35,0,.3,.18,.38,trim);
-    }
-    this.box(portal,0,2.56,0,2.2,.24,.4,wood);
-    this.box(portal,0,2.73,0,2.3,.13,.45,trim);
-    const material=new THREE.SpriteMaterial({
+    box(0,2.55,2.16,.24,.41,wood);
+    box(0,2.71,2.26,.13,.42,accent);
+    const spriteMaterial=new THREE.SpriteMaterial({
       map:this.icon(choice),transparent:true,depthWrite:false,alphaTest:.04,
     });
-    this.materials.push(material);
-    const sign=new THREE.Sprite(material);
-    sign.position.set(0,3.45,-.24);sign.scale.set(2.16,1.48,1);
-    portal.add(sign);this.markers.set(choice,sign);
-    // A visible house on the side street reinforces the 90-degree turn.
-    const houseZ=choice==='fish'?293:299;
-    const h=routePoint(houseZ,choice==='fish'?8.1:-8.1,choice,groundHeight(houseZ));
-    const house=new THREE.Group();
-    house.position.set(h.x,h.y,h.z);house.rotation.y=h.yaw;
-    group.add(house);
-    this.box(house,0,.95,0,3.5,5.5,8.5,this.material(choice==='fish'?'#f5d8bb':'#ecc1b1'));
-    this.box(house,0,3.75,0,3.75,.32,8.7,this.material('#be785a'));
+    this.materials.push(spriteMaterial);
+    const sign=new THREE.Sprite(spriteMaterial);
+    sign.position.set(0,3.37,-.25);
+    sign.scale.set(2.10,1.43,1);
+    group.add(sign);
+    this.signs.set(choice,sign);
     return group;
   }
-  update(chosen:RouteChoice|null,elapsed:number):void{
-    this.branches.fish.visible=chosen===null||alternativeBranch(chosen)==='fish';
-    this.branches.acro.visible=chosen===null||alternativeBranch(chosen)==='acro';
-    for(const [choice,sprite] of this.markers){
-      (sprite.material as THREE.SpriteMaterial).opacity=chosen!==null&&choice!==chosen?.70:1;
-      sprite.position.y=3.45+.045*Math.sin(elapsed*2.7+(choice==='fish'?0:1));
+
+  update(chosen:RouteChoice|null,elapsed:number,distance:number):void{
+    const approaching=distance<ROUTE_DETOUR_END+10;
+    for(const mode of ['fish','acro'] as const){
+      // ArtWorld takes ownership of selected pavement at the choice point;
+      // keep only a very short glimpse of the unchosen dead-end.
+      this.previews[mode].visible=approaching&&(chosen===null||mode===alternativeBranch(chosen));
+      this.portals[mode].visible=distance<275;
+    }
+    for(const [mode,sign] of this.signs){
+      sign.position.y=3.37+Math.sin(elapsed*2.8+(mode==='fish'?0:1))*.05;
+    }
+    for(const mode of ['fish','acro'] as const){
+      // Each optional join is 19 metres long. No long inactive route exists.
+      this.joins[mode].visible=chosen===mode &&
+        distance>=FAKE_MERGE.start-60&&distance<FAKE_MERGE.end+10;
     }
   }
+
   dispose():void{
     this.disposed=true;
-    this.group.traverse(o=>{if(o instanceof THREE.Mesh)o.geometry.dispose();});
-    this.materials.forEach(m=>m.dispose());
-    this.textures.forEach(t=>t.dispose());
+    this.group.traverse(object=>{
+      if(object instanceof THREE.Mesh)object.geometry.dispose();
+    });
+    this.materials.forEach(material=>material.dispose());
+    this.textures.forEach(texture=>texture.dispose());
   }
 }
