@@ -44,3 +44,17 @@ pnpm dev
 Cette première version poussée directement depuis ChatGPT utilise des textures et un chat illustré **générés procéduralement dans le navigateur**, afin d'avoir un projet qui démarre sans dépendances d'assets téléchargés. Le spritesheet kawaii original, les textures peintes haute résolution et la musique de fond ont été conservés dans l'archive v0.7 créée précédemment, mais **ne sont pas encore présents dans ce dépôt**. Il faudra les importer séparément après vérification des droits de diffusion de la musique.
 
 Les poissons récoltés s'ajoutent à une réserve locale en fin de run. Le système de déverrouillage permanent reste à développer.
+
+## Version v0.8 — textures et gameplay
+
+Le jeu charge désormais des textures raster compressées depuis `public/assets/textures/`, ainsi qu'un panorama AVIF depuis `public/assets/backgrounds/`. Un rendu de secours généré par Canvas reste disponible si un matériau ne peut pas être chargé.
+
+Les poissons apparaissent en séquences variées : collecte simple, slalom, boost, sauts ordinaires, puis poissons dorés qui nécessitent un rebond sur caisse.
+
+## Musique originale
+
+La lecture de musique, la pause/reprise, la boucle et le bouton muet sont intégrés. Le lecteur attend le fichier `public/assets/audio/music.mp3`.
+
+**Le MP3 original n'est pas encore présent dans le dépôt.** L'intégration GitHub permet les modifications de code et les petits fichiers, mais ne permet pas d'envoyer directement les 3,9 Mo de musique depuis les fichiers locaux de la conversation. Pour l'activer, envoyer l'enregistrement à ce chemin exact. Après le push, GitHub Actions publiera automatiquement la musique.
+
+Les droits sur la composition ont été confirmés par son auteur. Conserver l'attribution et le fichier source lors de l'ajout.
