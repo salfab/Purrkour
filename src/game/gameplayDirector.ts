@@ -96,5 +96,5 @@ export function patternHasCrate(id:PatternId):boolean{
 
 /** A safe lane is opposite a single crate; no pattern spans the whole track. */
 export function safeLaneX(crateX:number):number{
-  return crateX<=0?-1.65:1.65;
+  return crateX<=0?1.65:-1.65;
 }
