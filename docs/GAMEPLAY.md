@@ -202,3 +202,18 @@ Le chat utilise désormais deux orientations de sprite :
 La version Canvas des poses arrière est un **premier jeu de sprites fonctionnel**. Le spritesheet illustré haute fidélité pourra remplacer ce rendu sans modifier la logique de sélection d'orientation.
 
 Tests automatiques disponibles dans `tests/routeGeometry.test.ts` et `tests/routeFork.test.ts`.
+
+
+## 13. Bifurcation simplifiée et cadrage mobile (v0.13)
+
+Après retour utilisateur, la v0.12 ne correspondait pas à l’effet recherché : la caméra perdait la route lors des grandes boucles et la seconde branche était modélisée trop longtemps.
+
+**v0.13** remplace donc ces grandes boucles par :
+
+- **Un court S en 2 virages de 45°** immédiatement après le choix (250 m). Le tracé devient parfaitement rectiligne au bout d'environ **28 m**. Le gameplay et le monde continuent sur la même direction, légèrement décalée selon le choix.
+- **Une courte voie d'accès factice de 19 m**, qui n’existe que près de 391–410 m et arrive du côté abandonné avec un angle de **45°**. Elle n'est jamais jouable et il n’y a aucun graphe de routes à maintenir.
+- **Un cadrage adaptatif** (`routeCamera.ts`) : recul et ouverture du champ pendant le S, puis retour à la caméra d'origine. Les bords de la piste sur les 22 prochains mètres sont projetés pour dimensionner le champ horizontal même sur les écrans étroits.
+- **Sprites latéraux** : vue arrière au centre, atlas kawaii de profil sur les bords, inversion du profil sur la **gauche visible à l’écran** (position locale positive) afin que l'orientation corresponde au sens du point de fuite.
+- **Optimisation mobile :** seules deux très courtes prévisualisations de branches et le raccord factice sont dessinés. L'ancienne représentation complète des deux parcours est supprimée.
+
+La branche alternative ne correspond pas à une route réellement empruntable : ce n'est qu'un leurre géométrique. Cette version doit encore être vérifiée sur téléphone pour le cadre, la perspective et la transition du décor.

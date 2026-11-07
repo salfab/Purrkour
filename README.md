@@ -94,3 +94,8 @@ Le sprite du chat est désormais symétrisé lorsqu'il est à droite de l'écran
 ## Bifurcations spatiales v0.12
 
 Les routes de Purrkour sont désormais **des courbes dans la scène 3D**, pas seulement une animation de caméra. Les deux branches de l'embranchement de 250 m tournent à 90°, parcourent une rue latérale, puis se réunissent près de 430 m. L'autre branche reste un décor sans collision. Voir [docs/GAMEPLAY.md](docs/GAMEPLAY.md).
+
+
+## Court détour, faux raccord et cadrage adaptatif (v0.13)
+
+La bifurcation v0.12 à longues courbes a été remplacée par une inflexion en S de 28 mètres avant une nouvelle ligne droite, afin de conserver la piste à l'écran en mobile. Une petite route visuelle de 19 mètres rejoint le tracé vers 410 m à 45°, en venant du côté non choisi. La caméra s'adapte à la courbure et à la largeur du viewport, et le sprite de profil est inversé sur le côté gauche. Voir [docs/GAMEPLAY.md](docs/GAMEPLAY.md).

@@ -1,53 +1,68 @@
 import {describe,it,expect} from 'vitest';
-import {ROUTE_CURVE,ROUTE_JOIN_DISTANCE,routePose,routePoint,alternativeBranch} from '../src/game/routeGeometry';
+import {
+  ROUTE_CURVE,ROUTE_DETOUR_END,FAKE_MERGE,
+  routePose,routePoint,fakeMergePose,fakeMergePoint,alternativeBranch,turnFraming,
+} from '../src/game/routeGeometry';
 import {ROUTE_FORK} from '../src/game/routeChoices';
 import {isGap} from '../src/game/core';
 
-describe('actual spatial Y fork and merge',()=>{
-  it('starts at the exact split point, with a continuous tangent',()=>{
+describe('short lateral detour and fake 45-degree merge',()=>{
+  it('starts smoothly at the original split position',()=>{
     for(const branch of ['fish','acro'] as const){
       expect(routePose(ROUTE_FORK.chooseZ,branch)).toEqual({x:0,z:250,yaw:0});
-      const justAfter=routePose(250.01,branch);
-      expect(Math.abs(justAfter.x)).toBeLessThan(.001);
-      expect(justAfter.z).toBeGreaterThan(250);
+      const next=routePose(250.01,branch);
+      expect(Math.abs(next.x)).toBeLessThan(.001);
+      expect(next.z).toBeGreaterThan(250);
     }
   });
-  it('rotates a full 90 degrees on each chosen branch',()=>{
-    const at=ROUTE_CURVE.split+ROUTE_CURVE.radius*Math.PI/2;
-    expect(routePose(at,'fish').yaw).toBeCloseTo(Math.PI/2,6);
-    expect(routePose(at,'acro').yaw).toBeCloseTo(-Math.PI/2,6);
-    expect(routePose(at,'fish').x).toBeGreaterThan(10);
-    expect(routePose(at,'acro').x).toBeLessThan(-10);
-  });
-  it('rejoins the same global point and tangent in both directions',()=>{
-    const a=routePose(ROUTE_JOIN_DISTANCE,'fish');
-    const b=routePose(ROUTE_JOIN_DISTANCE,'acro');
-    expect(a).toEqual(b);
-    expect(a.x).toBeCloseTo(0,5);
-    expect(a.yaw).toBeCloseTo(0,5);
-    expect(routePose(ROUTE_JOIN_DISTANCE+16,'fish'))
-      .toEqual(routePose(ROUTE_JOIN_DISTANCE+16,'acro'));
-    expect(alternativeBranch('fish')).toBe('acro');
-  });
-  it('preserves a constant track width along every curved portion',()=>{
-    for(let s=250;s<=ROUTE_JOIN_DISTANCE;s+=2){
-      for(const route of ['fish','acro'] as const){
-        const a=routePoint(s,-2.5,route),b=routePoint(s,2.5,route);
-        expect(Math.hypot(a.x-b.x,a.z-b.z)).toBeCloseTo(5,5);
+  it('has one brief bend, then travels straight for the rest of the run',()=>{
+    const halfway=ROUTE_CURVE.split+ROUTE_CURVE.radius*ROUTE_CURVE.maximumAngle;
+    expect(routePose(halfway,'fish').yaw).toBeCloseTo(Math.PI/4,6);
+    expect(routePose(halfway,'acro').yaw).toBeCloseTo(-Math.PI/4,6);
+    for(const branch of ['fish','acro'] as const){
+      const after=routePose(ROUTE_DETOUR_END,branch);
+      expect(after.yaw).toBe(0);
+      for(const distance of [295,340,400,600,900]){
+        const point=routePose(distance,branch);
+        expect(point.x).toBeCloseTo(after.x,6);
+        expect(point.z-after.z).toBeCloseTo(distance-ROUTE_DETOUR_END,6);
+        expect(point.yaw).toBe(0);
       }
     }
   });
-  it('keeps both curves continuous and mirrored at all distances',()=>{
-    for(let s=250;s<ROUTE_JOIN_DISTANCE;s+=.31){
-      const a=routePose(s,'fish'),b=routePose(s+.01,'fish');
-      const c=routePose(s,'acro');
-      expect(Math.hypot(a.x-b.x,a.z-b.z)).toBeCloseTo(.01,3);
-      expect(a.x).toBeCloseTo(-c.x,5);
-      expect(a.z).toBeCloseTo(c.z,5);
+  it('has a continuous centreline and keeps exactly 5m of track width',()=>{
+    for(const branch of ['fish','acro'] as const){
+      for(let s=250;s<ROUTE_DETOUR_END;s+=.22){
+        const a=routePose(s,branch),b=routePose(s+.01,branch);
+        expect(Math.hypot(a.x-b.x,a.z-b.z)).toBeCloseTo(.01,3);
+        const left=routePoint(s,-2.5,branch),right=routePoint(s,2.5,branch);
+        expect(Math.hypot(left.x-right.x,left.z-right.z)).toBeCloseTo(5,5);
+      }
     }
   });
-  it('does not force the runner across a gap while the roads are curving',()=>{
-    for(let s=250;s<=ROUTE_JOIN_DISTANCE;s+=.25)expect(isGap(s)).toBe(false);
+  it('does not construct a second full branch for the fake merge',()=>{
+    expect(FAKE_MERGE.end-FAKE_MERGE.start).toBeLessThan(22);
+    for(const chosen of ['fish','acro'] as const){
+      const start=fakeMergePose(FAKE_MERGE.start,chosen);
+      const finish=fakeMergePose(FAKE_MERGE.end,chosen);
+      const main=routePose(FAKE_MERGE.end,chosen);
+      expect(finish.x).toBeCloseTo(main.x,6);
+      expect(finish.z).toBeCloseTo(main.z,6);
+      expect(Math.abs(start.x-main.x)).toBeGreaterThan(10);
+      expect(Math.abs(start.yaw)).toBeCloseTo(Math.PI/4,6);
+      const left=fakeMergePoint(400,-2.5,chosen);
+      const right=fakeMergePoint(400,2.5,chosen);
+      expect(Math.hypot(left.x-right.x,left.z-right.z)).toBeCloseTo(5,5);
+      expect(alternativeBranch(chosen)).not.toBe(chosen);
+    }
+  });
+  it('temporarily expands the camera composition around the detour',()=>{
+    expect(turnFraming(210)).toBe(0);
+    expect(turnFraming(260)).toBeCloseTo(1,6);
+    expect(turnFraming(320)).toBe(0);
+  });
+  it('keeps the detour free of gameplay gaps',()=>{
+    for(let s=250;s<=ROUTE_DETOUR_END;s+=.25)expect(isGap(s)).toBe(false);
     expect(isGap(468.7)).toBe(true);
   });
 });

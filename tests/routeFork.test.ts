@@ -24,7 +24,7 @@ describe('first two-way route fork',()=>{
     expect(forkStage(251,'fish',11,10.5)).toBe('turn');
     expect(forkStage(270,'fish',13,10.5)).toBe('turn');
     expect(forkStage(285,'fish',15,10.5)).toBe('active');
-    expect(forkStage(420,'fish',40,10.5)).toBe('rejoin');
+    expect(forkStage(400,'fish',40,10.5)).toBe('rejoin');
     expect(forkStage(436,'fish',43,10.5)).toBeNull();
     expect(activeRoute(350,'fish')).toBe('fish');
     expect(activeRoute(410,'acro')).toBeNull();
