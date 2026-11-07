@@ -5,7 +5,8 @@ import { ThumbControls } from './ThumbControls';
 import { ScenicBackdrop } from './ScenicBackdrop';
 import {RouteForkView} from './RouteForkView';
 import {forkStage} from './routeChoices';
-import {routePoint,routePose} from './routeGeometry';
+import {routePose} from './routeGeometry';
+import {frameRouteCamera} from './routeCamera';
 
 export type UpdateListener = (snapshot: Snapshot) => void;
 
@@ -130,17 +131,16 @@ export class PurrkourGame {
       if(this.hudTimer>.10){this.hudTimer=0;this.publish();}
     }
     this.world.update(this.player,this.collected);
-    this.fork.update(this.player.routeChoice,this.player.elapsed);
-    const radians=this.pitch*Math.PI/180;
-    const y=groundHeight(this.player.z)+WORLD.cameraHeight;
-    // The camera really travels along the selected street; the whole town
-    // rotates in perspective as the cat takes each 90-degree corner.
-    const behind=routePoint(Math.max(0,this.player.z-WORLD.cameraDistance),0,this.player.routeChoice);
-    const ahead=routePoint(this.player.z+12,0,this.player.routeChoice);
-    this.camera.position.set(behind.x,y,behind.z);
-    this.camera.lookAt(ahead.x,y-12*Math.sin(radians),ahead.z);
+    this.fork.update(this.player.routeChoice,this.player.elapsed,this.player.z);
+    frameRouteCamera(
+      this.camera,this.player.z,this.player.routeChoice,this.pitch,
+      groundHeight,WORLD.cameraDistance,WORLD.cameraHeight,
+    );
     this.world.setTurnLean(0);
-    this.backdrop.update(this.player.z,groundHeight(this.player.z),routePose(this.player.z,this.player.routeChoice));
+    this.backdrop.update(
+      this.player.z,groundHeight(this.player.z),
+      routePose(this.player.z,this.player.routeChoice),
+    );
     this.renderer.render(this.scene,this.camera);
     this.frameId=requestAnimationFrame(this.frame);
   };

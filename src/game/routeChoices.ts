@@ -2,6 +2,8 @@
  * First experimental fork. Two lanes are chosen using the existing steering
  * control, so no new tap, swipe gesture, or pause screen is necessary.
  */
+import {FAKE_MERGE,ROUTE_DETOUR_END} from './routeGeometry';
+
 export type RouteChoice = 'fish' | 'acro';
 export type RouteStage = 'approach' | 'turn' | 'active' | 'rejoin' | null;
 
@@ -26,9 +28,9 @@ export function activeRoute(distance:number,choice:RouteChoice|null):RouteChoice
 export function forkStage(distance:number,choice:RouteChoice|null,elapsed:number,chosenAt:number|null):RouteStage {
   if(distance>=ROUTE_FORK.announceZ && distance<ROUTE_FORK.chooseZ && choice===null)return 'approach';
   if(choice===null)return null;
-  if(distance>405&&distance<435)return 'rejoin';
-  if(distance>=435)return null;
-  if(distance<273||(chosenAt!==null && elapsed-chosenAt<ROUTE_FORK.turnSeconds))return 'turn';
+  if(distance>=FAKE_MERGE.start&&distance<FAKE_MERGE.end+6)return 'rejoin';
+  if(distance>=FAKE_MERGE.end+6)return null;
+  if(distance<ROUTE_DETOUR_END||(chosenAt!==null && elapsed-chosenAt<ROUTE_FORK.turnSeconds))return 'turn';
   return 'active';
 }
 

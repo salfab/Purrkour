@@ -571,9 +571,10 @@ export class ArtWorld {
     }
     const position=routePoint(player.z,player.x,player.routeChoice);
     this.cat.position.set(position.x,player.y,position.z);
-    // Three.Sprite uses a signed X scale; mirror the existing animation when
-    // the cat is on the screen-right side (negative world X for our camera).
-    this.catSprite.scale.x=player.x<-.28?-1.9:1.9;
+    // Existing illustrated side atlas looks toward screen-right.
+    // Mirror on SCREEN LEFT (positive local X in our behind-the-cat camera).
+    const sideLeft=player.x>.48;
+    this.catSprite.scale.x=sideLeft?-1.9:1.9;
     this.shadow.position.y=groundHeight(player.z)-player.y+.025;
     (this.shadow.material as THREE.MeshBasicMaterial).opacity=player.grounded?.3:Math.max(.08,.3-(player.y-groundHeight(player.z))*.055);
     const centered=Math.abs(player.x)<.48;
