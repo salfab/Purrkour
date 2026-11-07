@@ -4,7 +4,7 @@ import { ArtWorld } from './ArtWorld';
 import { ThumbControls } from './ThumbControls';
 import { ScenicBackdrop } from './ScenicBackdrop';
 import {RouteForkView} from './RouteForkView';
-import {ROUTE_FORK,turnEnvelope,forkStage} from './routeChoices';
+import {turnEnvelope,forkStage} from './routeChoices';
 
 export type UpdateListener = (snapshot: Snapshot) => void;
 
