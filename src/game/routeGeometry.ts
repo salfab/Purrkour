@@ -39,9 +39,10 @@ export const ROUTE_PREVIEW_END=288;
 export function branchRoadEdges(distance:number,choice:RouteChoice,halfWidth=2.5):{min:number;max:number}{
   const t=Math.max(0,Math.min(1,(distance-ROUTE_CURVE.split)/(ROUTE_DETOUR_END-ROUTE_CURVE.split)));
   const open=t*t*(3-2*t);
+  const openedWidth=halfWidth*open;
   return choice==='fish'
-    ? {min:-halfWidth*open,max:halfWidth}
-    : {min:-halfWidth,max:halfWidth*open};
+    ? {min:openedWidth===0?0:-openedWidth,max:halfWidth}
+    : {min:-halfWidth,max:openedWidth};
 }
 
 /** Physical steering envelope: cannot cross into the unchosen lane at the fork. */
