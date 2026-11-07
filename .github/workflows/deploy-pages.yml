@@ -1,0 +1,96 @@
+name: Deploy Purrkour to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: purrkour-pages
+  cancel-in-progress: true
+
+jobs:
+  inspect:
+    name: Check that the game source is present
+    runs-on: ubuntu-latest
+    outputs:
+      has_game: ${{ steps.files.outputs.has_game }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Detect game project
+        id: files
+        run: |
+          if [[ -f package.json && -f vite.config.ts && -d src ]]; then
+            echo "has_game=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_game=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::The repository is initialized. Upload the Purrkour React/Three.js project to enable Pages deployment."
+          fi
+
+  build:
+    name: Typecheck, test and build
+    needs: inspect
+    if: needs.inspect.outputs.has_game == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: |
+          if [[ -f pnpm-lock.yaml ]]; then
+            pnpm install --frozen-lockfile
+          else
+            pnpm install --no-frozen-lockfile
+          fi
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Run unit tests
+        run: pnpm test
+
+      - name: Build for GitHub Pages
+        env:
+          GITHUB_PAGES: "true"
+        run: pnpm build
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload build output
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+  deploy:
+    name: Publish website
+    needs: [inspect, build]
+    if: needs.inspect.outputs.has_game == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy site
+        uses: actions/deploy-pages@v4
+        id: deployment
