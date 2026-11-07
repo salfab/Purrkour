@@ -90,3 +90,7 @@ Le sprite du chat est désormais symétrisé lorsqu'il est à droite de l'écran
 ## Embranchement expérimental v0.11
 
 À environ **250 mètres**, le chat traverse deux portails : à gauche (à l'écran) la route des poissons et à droite la route des acrobaties. Le choix est automatiquement validé par la position latérale du chat, sans bouton. Une rotation cinématique d'environ une seconde annonce la section de 150 m qui suit. Ce premier essai conserve le système de piste droite et utilise un virage simulé par la caméra ; voir [docs/GAMEPLAY.md](docs/GAMEPLAY.md).
+
+## Bifurcations spatiales v0.12
+
+Les routes de Purrkour sont désormais **des courbes dans la scène 3D**, pas seulement une animation de caméra. Les deux branches de l'embranchement de 250 m tournent à 90°, parcourent une rue latérale, puis se réunissent près de 430 m. L'autre branche reste un décor sans collision. Voir [docs/GAMEPLAY.md](docs/GAMEPLAY.md).

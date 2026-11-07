@@ -179,3 +179,14 @@ Avant de produire plus de mécaniques :
 - Tests automatisés : direction droite/gauche (axes caméra), tutoriel conservé, mode actif, et alignement des caisses avec leurs récompenses.
 
 **À tester sur téléphone :** compréhension immédiate des pictogrammes, distance réelle d'anticipation, absence de cinétose à la rotation, visibilité des couleurs du portail, différence perceptible de difficulté entre les deux voies. Une vraie route courbe nécessitera ensuite une adaptation des coordonnées de déplacement et de la caméra, sans la simuler par un simple écran de transition.
+
+## 12. Bifurcation spatiale et réunion (v0.12)
+
+**✅ Implémentation géométrique sans graphe routier.** `src/game/routeGeometry.ts` convertit la distance du runner en une position 3D et un angle. Les deux branches symétriques sont des courbes continues, virent à 90° et reviennent à un même point avec une orientation commune, vers **430 mètres**.
+
+- Avant le choix, les deux rues sont visibles. Après validation, la rue choisie est dessinée et peuplée par `ArtWorld`, l'autre par `RouteForkView` comme décor exclusivement.
+- La caméra suit la trajectoire de la route ; les pavés, bordures, bâtiments, caisses, poissons et le chat utilisent la même transformation spatiale.
+- Les deux branches se rejoignent réellement en coordonnées du monde (même point et même tangente) ; seule la direction choisie est conservée en mémoire.
+- La simulation reste exprimée en distance parcourue et largeur de piste locale. Aucun graphe ni collision sur la branche non choisie.
+- La zone jusqu'au retour vers le tronc commun est volontairement sans fossé pour protéger les virages.
+- **À valider sur téléphone :** raccords entre portions de bordures, lisibilité des portails, apparition visuelle de l'autre branche et fluidité de caméra.
