@@ -154,6 +154,37 @@ export function fakeMergePoint(distance:number,lateral:number,chosen:RouteChoice
   };
 }
 
+/**
+ * Keep the incoming 45-degree street clear of roadside buildings.
+ * Buildings are fixed axis-aligned boxes along the straight part of our
+ * chosen route; test their footprint against a narrow sampled ribbon
+ * of the fake street. A modest clearance covers roofs and decorations.
+ *
+ * This is tested independently of scenery generation, and works for either
+ * route instead of hard-coding a particular house/index.
+ */
+export function fakeMergeOverlapsBuilding(
+  distance:number,
+  localX:number,
+  choice:RouteChoice|null,
+  halfWidth=2,
+  halfDepth=6.2,
+):boolean {
+  if(choice===null)return false;
+  const house=routePoint(distance,localX,choice);
+  const clearance=.65;
+  for(let s=FAKE_MERGE.start;s<=FAKE_MERGE.end+.001;s+=.5){
+    for(const lateral of [-2.65,0,2.65]){
+      const road=fakeMergePoint(s,lateral,choice);
+      if(
+        Math.abs(road.x-house.x)<=halfWidth+clearance &&
+        Math.abs(road.z-house.z)<=halfDepth+clearance
+      )return true;
+    }
+  }
+  return false;
+}
+
 /** How much extra framing the mobile camera needs near the brief S-bend. */
 export function turnFraming(distance:number):number {
   const s=distance;

@@ -2,12 +2,36 @@ import {describe,it,expect} from 'vitest';
 import {
   ROUTE_CURVE,ROUTE_DETOUR_END,FAKE_MERGE,
   routePose,routePoint,fakeMergePose,fakeMergePoint,alternativeBranch,turnFraming,
-  ROUTE_PREVIEW_END,branchRoadEdges,streamedRoadInterval,
+  ROUTE_PREVIEW_END,branchRoadEdges,streamedRoadInterval,fakeMergeOverlapsBuilding,
 } from '../src/game/routeGeometry';
 import {ROUTE_FORK} from '../src/game/routeChoices';
 import {isGap} from '../src/game/core';
 
 describe('short lateral detour and fake 45-degree merge',()=>{
+  it('keeps any roadside facade clear of the decorative incoming road',()=>{
+    for(const choice of ['fish','acro'] as const){
+      // Test every position which can spawn a house throughout the merge.
+      // After filtering, none of the remaining house footprints intersects.
+      for(let chunk=0;chunk<42;chunk++){
+        if(chunk%3!==0)continue;
+        const z=chunk*12+5;
+        const localX=(chunk%2===0?-1:1)*7;
+        const intersects=fakeMergeOverlapsBuilding(z,localX,choice);
+        if(intersects){
+          expect(z).toBeGreaterThan(FAKE_MERGE.start-12);
+          expect(z).toBeLessThan(FAKE_MERGE.end+12);
+        }
+        if(z<FAKE_MERGE.start-15||z>FAKE_MERGE.end+15){
+          expect(intersects).toBe(false);
+        }
+      }
+    }
+    // With the current seed-independent building placement, the facade
+    // at 401m is removed on Acrobaties, but retained on Poissons.
+    expect(fakeMergeOverlapsBuilding(401,7,'acro')).toBe(true);
+    expect(fakeMergeOverlapsBuilding(401,7,'fish')).toBe(false);
+    expect(fakeMergeOverlapsBuilding(401,-7,'fish')).toBe(true);
+  });
   it('keeps the playable scene disjoint from the two permanent fork previews',()=>{
     expect(streamedRoadInterval(240,252,null)).toEqual({start:240,end:250});
     expect(streamedRoadInterval(240,252,'fish')).toEqual({start:240,end:250});

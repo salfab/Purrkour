@@ -109,3 +109,8 @@ Un cadrage anticipé avant la bifurcation et un lissage indépendant du FPS évi
 ## Raccord continu du Y (v0.15)
 
 La branche sélectionnée est désormais **dessinée en continu** : les deux tronçons courts du Y restent identiques avant/après le choix, puis se raccordent à la piste active au même point (288 m), sans redessiner le sol sous le joueur. Le contrôle est contraint à la voie choisie pendant la séparation, jusqu'à ce que les deux chemins soient visuellement distincts.
+
+
+## Dégagement du raccord et orientation du chat (v0.16)
+
+Les façades sont désormais filtrées contre la **géométrie réelle du raccord visuel à 45°** : lorsqu'une maison ou son toit empiéterait sur la rue entrante, cette maison et ses décorations ne sont pas générées. Les bâtiments hors de cette zone restent inchangés. Les sprites de profil du chat utilisent la même animation à gauche et à droite : originaux sur la **gauche de l'écran** (orientés vers la droite), miroir sur la **droite de l'écran** (orientés vers la gauche). La vue arrière reste utilisée au centre.

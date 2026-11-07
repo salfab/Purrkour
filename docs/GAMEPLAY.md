@@ -234,3 +234,9 @@ La branche alternative ne correspond pas à une route réellement empruntable : 
 Le Y n'est plus reconstruit à l'instant du choix. Les deux courtes prévisualisations restent dessinées avec **le même matériau et les mêmes UV** que la piste principale, et elles couvrent désormais l'intégralité du détour jusqu'à la limite exacte de **288 m** (frontière des chunks de 12 m). `ArtWorld` commence la section sélectionnée **à 288 m seulement**. Aucun remplacement brutal du sol n'a lieu sous le chat à 250 m.
 
 Les deux voies commencent comme deux moitiés contiguës de la route commune et s'élargissent graduellement. Après le point de non-retour, `simulate()` limite le déplacement latéral à la partie de la route sélectionnée jusqu'à la fin du S. Le joueur ne peut plus traverser l'autre voie, même s'il garde le pouce à l'opposé. Les collectibles précédemment invisibles sous le Y sont neutralisés. Cette sécurisation est couverte par des tests de simulation.
+
+
+## 16. Raccord dégagé et symétrie latérale (v0.16)
+
+- Les maisons ne doivent jamais traverser la rue de raccordement factice à 45° : avant d'ajouter une façade, le générateur teste son emprise au sol et celle de son toit contre plusieurs points de la bande routière. Les seules façades trop proches sont supprimées, sans modifier les obstacles ou la route active.
+- Le chat utilise le sprite arrière au centre ; sur le côté gauche de l'écran il conserve le profil original tourné vers la droite, et sur le côté droit il réutilise le **même profil** inversé horizontalement. La logique d'orientation est extraite dans `src/game/catView.ts` et couverte par des tests.

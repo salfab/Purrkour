@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { WORLD, cratesNear, groundHeight, isGap, pickupsNear, type Pickup, type Player } from './core';
 import { gapEdgesInRange } from './backdropMath';
 import {ROUTE_FORK,activeRoute,type RouteChoice} from './routeChoices';
-import {routePoint,streamedRoadInterval} from './routeGeometry';
+import {routePoint,streamedRoadInterval,fakeMergeOverlapsBuilding} from './routeGeometry';
+import {catViewFromLocalX,mirrorProfileForView} from './catView';
 
 function canvasTexture(size: number, paint: (ctx: CanvasRenderingContext2D, size: number) => void): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -538,12 +539,16 @@ export class ArtWorld {
     }
     if(index%3===0&&from+5>=visualStart&&from+5<visualEnd){
       const left=index%2===0;const sign=left?-1:1;const z=from+5;
-      const floor=groundHeight(z),height=5.8+(index%4)*.65;
-      this.box(group,sign*7,floor+height/2-1.8,z,3.7,height,12,left?this.wallMaterial:this.peachMaterial);
-      this.box(group,sign*7,floor+height-1.75,z,4,.36,12.25,this.roofMaterial);
-      this.wallProp(group,'window',sign as -1|1,floor+2.5,z-1.6,1.5,2);
-      this.prop(group,'flower',sign*3.55,floor-1.8+.55,z+3.5,1.05,1.05);
-      this.wallProp(group,'banner',sign as -1|1,floor+3.2,z+3,1.05,1.7);
+      // The incoming decorative road must never run through a building.
+      // Skip only the facade that would intersect it; keep the other side.
+      if(!fakeMergeOverlapsBuilding(z,sign*7,route)){
+        const floor=groundHeight(z),height=5.8+(index%4)*.65;
+        this.box(group,sign*7,floor+height/2-1.8,z,3.7,height,12,left?this.wallMaterial:this.peachMaterial);
+        this.box(group,sign*7,floor+height-1.75,z,4,.36,12.25,this.roofMaterial);
+        this.wallProp(group,'window',sign as -1|1,floor+2.5,z-1.6,1.5,2);
+        this.prop(group,'flower',sign*3.55,floor-1.8+.55,z+3.5,1.05,1.05);
+        this.wallProp(group,'banner',sign as -1|1,floor+3.2,z+3,1.05,1.7);
+      }
     }
     this.warpChunk(group,route);
     return group;
@@ -627,12 +632,13 @@ export class ArtWorld {
     }
     const position=routePoint(player.z,player.x,player.routeChoice);
     this.cat.position.set(position.x,player.y,position.z);
-    const sideLeft=player.x>.48;
+    const view=catViewFromLocalX(player.x);
     this.shadow.position.y=groundHeight(player.z)-player.y+.025;
     (this.shadow.material as THREE.MeshBasicMaterial).opacity=player.grounded?.3:Math.max(.08,.3-(player.y-groundHeight(player.z))*.055);
-    const centered=Math.abs(player.x)<.48;
     const frame=player.boost>0?7:!player.grounded?6:Math.floor(player.anim)%6;
-    this.drawCat(frame,centered,sideLeft);
+    // The existing profile art looks toward screen-right. Left side uses it
+    // unchanged; right side uses precisely the same atlas mirrored in UVs.
+    this.drawCat(frame,view==='rear',mirrorProfileForView(view));
   }
   dispose():void{
     this.resetRun(0);
