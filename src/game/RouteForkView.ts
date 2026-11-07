@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {groundHeight,WORLD} from './core';
 import {ROUTE_FORK,type RouteChoice} from './routeChoices';
 import {
-  ROUTE_CURVE,ROUTE_PREVIEW_END,ROUTE_DETOUR_END,FAKE_MERGE,
+  ROUTE_CURVE,ROUTE_PREVIEW_END,FAKE_MERGE,
   branchRoadEdges,routePoint,fakeMergePoint,type WorldPoint,
 } from './routeGeometry';
 
