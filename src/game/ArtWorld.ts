@@ -32,6 +32,34 @@ function stoneTexture(): THREE.CanvasTexture {
   });
   texture.wrapS=THREE.RepeatWrapping;texture.wrapT=THREE.RepeatWrapping;return texture;
 }
+function terraceTexture(): THREE.CanvasTexture {
+  const t = canvasTexture(256, (ctx, s) => {
+    ctx.fillStyle = '#dec3a3';
+    ctx.fillRect(0, 0, s, s);
+    for (let row = 0; row < 8; row++) {
+      for (let col = -1; col <= 8; col++) {
+        const x = col * 32 + (row % 2) * 16;
+        const y = row * 32;
+        ctx.fillStyle = ['#f1d6b4', '#e8c69f', '#dcc09c', '#ead1b0'][(row + col + 20) % 4] ?? '#e8c69f';
+        rounded(ctx, x + 1.6, y + 1.6, 29, 29, 3);
+        ctx.fill();
+        ctx.strokeStyle = '#b39478';
+        ctx.lineWidth = .9;
+        ctx.stroke();
+      }
+    }
+    // Small variations in the paving, not geometry or dense draw calls.
+    for (let i = 0; i < 95; i++) {
+      const x = (i * 67 + 23) % s;
+      const y = (i * 91 + 47) % s;
+      ctx.fillStyle = i % 3 === 0 ? '#93a87b66' : '#fff9e350';
+      ctx.fillRect(x, y, i % 3 + 1, 2);
+    }
+  });
+  t.wrapS = THREE.RepeatWrapping;
+  t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
 function plasterTexture(peach: boolean): THREE.CanvasTexture {
   const t=canvasTexture(128,(ctx,s)=>{
     ctx.fillStyle=peach?'#f6d4c1':'#fff0d6';ctx.fillRect(0,0,s,s);
@@ -136,6 +164,7 @@ export class ArtWorld {
   private readonly chunks=new Map<number,THREE.Group>();
   private readonly pickups=new Map<string,{sprite:THREE.Sprite,item:Pickup}>();
   private readonly groundMaterial:THREE.MeshLambertMaterial;
+  private readonly terraceMaterial:THREE.MeshLambertMaterial;
   private readonly edgeMaterial:THREE.MeshLambertMaterial;
   private readonly wallMaterial:THREE.MeshLambertMaterial;
   private readonly peachMaterial:THREE.MeshLambertMaterial;
@@ -156,6 +185,7 @@ export class ArtWorld {
     const tex=(texture:THREE.Texture)=>{this.textures.push(texture);return texture;};
     const mat=(t:THREE.Texture)=>{const m=new THREE.MeshLambertMaterial({map:tex(t),side:THREE.DoubleSide});this.materials.push(m);return m;};
     this.groundMaterial=mat(stoneTexture());
+    this.terraceMaterial=mat(terraceTexture());
     this.wallMaterial=mat(plasterTexture(false));
     this.peachMaterial=mat(plasterTexture(true));
     this.roofMaterial=mat(roofTexture());
@@ -163,7 +193,7 @@ export class ArtWorld {
     this.edgeMaterial=new THREE.MeshLambertMaterial({color:'#f3d39d'});
     this.materials.push(this.edgeMaterial);
     const sprite=(t:THREE.Texture)=>{const m=new THREE.SpriteMaterial({map:tex(t),transparent:true,alphaTest:.05,depthWrite:false});this.materials.push(m);return m;};
-    this.pickupMaterials={fish:sprite(iconTexture('fish')),gold:sprite(iconTexture('gold')),boost:sprite(iconTexture('boost'))};
+    this.pickupMaterials={fish:sprite(iconTexture('fish')),gold:sprite(iconTexture('gold')),sky:sprite(iconTexture('gold')),boost:sprite(iconTexture('boost'))};
     this.propMaterials={window:sprite(iconTexture('window')),flower:sprite(iconTexture('flower')),banner:sprite(iconTexture('banner'))};
     const onWall=(material:THREE.SpriteMaterial):THREE.MeshBasicMaterial=>{
       const m=new THREE.MeshBasicMaterial({
@@ -249,8 +279,17 @@ export class ArtWorld {
   private createChunk(index:number):THREE.Group{
     const from=index*this.chunkLength;const to=from+this.chunkLength;const group=new THREE.Group();
     const vertices:number[]=[];const uv:number[]=[];
+    const terrainVertices:number[]=[];const terrainUv:number[]=[];
+    const terrainTop=(z:number)=>groundHeight(z)-1.8;
     for(let z=from;z<to;z+=.5){
       const end=Math.min(z+.5,to);
+      // Side streets are continuous even where the elevated runner has gaps.
+      // Their top is aligned with the houses' existing -1.8 m foundation.
+      for (const [x0,x1] of [[-12.5,-2.7],[2.7,12.5]] as const) {
+        const a=terrainTop(z), b=terrainTop(end);
+        terrainVertices.push(x0,a,z,x0,b,end,x1,a,z, x0,b,end,x1,b,end,x1,a,z);
+        terrainUv.push(x0*.21,z*.36,x0*.21,end*.36,x1*.21,z*.36, x0*.21,end*.36,x1*.21,end*.36,x1*.21,z*.36);
+      }
       const bounds=[z,end];
       for(let cycle=Math.floor(z/100);cycle<=Math.floor(end/100);cycle++){
         for(const edge of [cycle*100+WORLD.gapStart,cycle*100+WORLD.gapEnd]){
@@ -266,6 +305,13 @@ export class ArtWorld {
         uv.push(0,near*.45,0,far*.45,2.5,near*.45,0,far*.45,2.5,far*.45,2.5,near*.45);
       }
     }
+    if(terrainVertices.length){
+      const geo=new THREE.BufferGeometry();
+      geo.setAttribute('position',new THREE.Float32BufferAttribute(terrainVertices,3));
+      geo.setAttribute('uv',new THREE.Float32BufferAttribute(terrainUv,2));
+      geo.computeVertexNormals();
+      group.add(new THREE.Mesh(geo,this.terraceMaterial));
+    }
     if(vertices.length){
       const geo=new THREE.BufferGeometry();
       geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
@@ -278,6 +324,9 @@ export class ArtWorld {
       const y=groundHeight(z+1);
       this.box(group,-2.6,y+.11,z+1,.24,.26,2,this.edgeMaterial);
       this.box(group,2.6,y+.11,z+1,.24,.26,2,this.edgeMaterial);
+      // Retaining walls connect the raised runner to the lower streets.
+      this.box(group,-2.59,y-.88,z+1,.18,1.75,2,this.terraceMaterial);
+      this.box(group,2.59,y-.88,z+1,.18,1.75,2,this.terraceMaterial);
     }
     for(const c of cratesNear(from,to)){
       if(c.z<from||c.z>=to)continue;
@@ -286,7 +335,7 @@ export class ArtWorld {
     for(const p of pickupsNear(from,to)){
       if(p.z<from||p.z>=to)continue;
       const sprite=new THREE.Sprite(this.pickupMaterials[p.kind]);
-      const size=p.kind==='gold'?.96:p.kind==='boost'?.85:.7;
+      const size=p.kind==='sky'?1.15:p.kind==='gold'?.96:p.kind==='boost'?.85:.7;
       sprite.scale.set(size,size,1);
       sprite.position.set(p.x,p.y,p.z);
       group.add(sprite);this.pickups.set(p.id,{sprite,item:p});
@@ -297,7 +346,7 @@ export class ArtWorld {
       this.box(group,sign*7,floor+height/2-1.8,z,3.7,height,12,left?this.wallMaterial:this.peachMaterial);
       this.box(group,sign*7,floor+height-1.75,z,4,.36,12.25,this.roofMaterial);
       this.wallProp(group,'window',sign as -1|1,floor+2.5,z-1.6,1.5,2);
-      this.prop(group,'flower',sign*3.55,floor+.68,z+3.5,1.05,1.05);
+      this.prop(group,'flower',sign*3.55,floor-1.8+.55,z+3.5,1.05,1.05);
       this.wallProp(group,'banner',sign as -1|1,floor+3.2,z+3,1.05,1.7);
     }
     return group;
@@ -312,7 +361,7 @@ export class ArtWorld {
       if(i>=start&&i<=end)continue;
       chunk.traverse(obj=>{
         if(obj instanceof THREE.Mesh)obj.geometry.dispose();
-        if(obj instanceof THREE.Sprite && (obj.material===this.pickupMaterials.fish||obj.material===this.pickupMaterials.gold||obj.material===this.pickupMaterials.boost)){
+        if(obj instanceof THREE.Sprite && (obj.material===this.pickupMaterials.fish||obj.material===this.pickupMaterials.gold||obj.material===this.pickupMaterials.sky||obj.material===this.pickupMaterials.boost)){
           for(const [id,p] of this.pickups)if(p.sprite===obj)this.pickups.delete(id);
         }
       });

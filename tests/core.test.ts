@@ -28,6 +28,22 @@ describe('Purrkour deterministic gameplay', () => {
     expect(isGap(69)).toBe(true);
     expect(cratesNear(0,100).some(c => c.z === 18)).toBe(true);
     expect(pickupsNear(0,100).some(p => p.kind === 'gold')).toBe(true);
+    expect(pickupsNear(0,100).some(p => p.kind === 'sky')).toBe(false);
+    expect(pickupsNear(100,200).some(p => p.kind === 'sky')).toBe(true);
+  });
+  it('places advanced fish beyond normal jump reach but within a crate bounce arc', () => {
+    const sky = pickupsNear(100,200).find(p=>p.kind==='sky' && p.id==='sky-a-1');
+    const crate = cratesNear(100,200).find(c=>c.id==='a-1');
+    expect(sky).toBeDefined();
+    expect(crate).toBeDefined();
+    if(!sky||!crate)throw new Error('Missing fixture');
+    expect(sky.x).toBe(crate.x);
+    expect(sky.z).toBeGreaterThan(crate.z);
+    const maxNormalJump = WORLD.jumpVelocity**2/(2*WORLD.gravity);
+    const maxBounceHeight = crate.height + WORLD.bounceVelocity**2/(2*WORLD.gravity);
+    const lowestCollectibleHeight = sky.y - groundHeight(crate.z) - sky.rangeY - .6;
+    expect(lowestCollectibleHeight).toBeGreaterThan(maxNormalJump);
+    expect(lowestCollectibleHeight).toBeLessThan(maxBounceHeight);
   });
   it('jumps when the player requests a jump', () => {
     const player = makePlayer(); const cmd = input();

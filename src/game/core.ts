@@ -42,7 +42,7 @@ export interface Controls {
   targetX: number | null; left: boolean; right: boolean; jump: boolean;
 }
 export interface Crate { id: string; x: number; z: number; width: number; depth: number; height: number; }
-export type PickupKind = 'fish' | 'gold' | 'boost';
+export type PickupKind = 'fish' | 'gold' | 'sky' | 'boost';
 export interface Pickup {
   id: string; kind: PickupKind; x: number; y: number; z: number;
   points: number; fishes: number; rangeX: number; rangeY: number; rangeZ: number;
@@ -88,7 +88,19 @@ export function pickupsNear(start: number, end: number): Pickup[] {
       result.push({ id: 'ramp-' + k + '-' + i, kind: 'fish', x: 1.42, z, y: groundHeight(z) + .45, points: 10, fishes: 1, rangeX: .38, rangeY: .5, rangeZ: .5 });
     }
     for (const [name, x, at] of [['a', -1.35, 18], ['b', 1.3, 41], ['c', 0, 88]] as const) {
-      result.push({ id: 'gold-' + name + '-' + k, kind: 'gold', x, z: base + at + 1.2, y: groundHeight(base + at) + 2.4, points: 100, fishes: 3, rangeX: .58, rangeY: .66, rangeZ: .95 });
+      // After 100 m, the high fish sits beyond the maximum normal jump height,
+      // but within the bounce arc from the crate below it.
+      const needsBounce = k >= 1;
+      result.push({
+        id: (needsBounce ? 'sky-' : 'gold-') + name + '-' + k,
+        kind: needsBounce ? 'sky' : 'gold',
+        x,
+        z: base + at + (needsBounce ? 2 : 1.2),
+        y: groundHeight(base + at) + (needsBounce ? 2.95 : 2.4),
+        points: needsBounce ? 180 : 100,
+        fishes: needsBounce ? 5 : 3,
+        rangeX: .58, rangeY: needsBounce ? .46 : .66, rangeZ: .95,
+      });
     }
     result.push({ id: 'boost-' + k, kind: 'boost', x: .75, z: base + 28, y: groundHeight(base + 28) + .68, points: 120, fishes: 0, rangeX: .48, rangeY: .56, rangeZ: .54 });
   }

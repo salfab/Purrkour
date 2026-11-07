@@ -17,6 +17,7 @@ export class PurrkourGame {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly camera=new THREE.PerspectiveCamera(64,1,.1,180);
   private readonly scene=new THREE.Scene();
+  private readonly horizonTexture:THREE.Texture;
   private readonly world=new ArtWorld();
   private readonly controls: ThumbControls;
   private readonly resizeObserver: ResizeObserver;
@@ -40,6 +41,14 @@ export class PurrkourGame {
     this.renderer.setPixelRatio(Math.min(1.5,window.devicePixelRatio||1));
     this.renderer.outputColorSpace=THREE.SRGBColorSpace;
     this.scene.background=new THREE.Color('#bfe6f5');
+    const horizon=new THREE.TextureLoader().load(
+      `${import.meta.env.BASE_URL}assets/backgrounds/rooftop-horizon.svg`,
+      texture=>{ texture.colorSpace=THREE.SRGBColorSpace; this.scene.background=texture; },
+      undefined,
+      ()=>console.warn('Purrkour: horizon image unavailable; using sky color'),
+    );
+    horizon.colorSpace=THREE.SRGBColorSpace;
+    this.horizonTexture=horizon;
     this.scene.fog=new THREE.Fog('#bfe6f5',38,120);
     this.scene.add(new THREE.HemisphereLight('#ffffff','#bc9e91',2.1));
     const sunlight=new THREE.DirectionalLight('#fff3d6',2.4);
@@ -128,6 +137,6 @@ export class PurrkourGame {
     this.disposed=true;cancelAnimationFrame(this.frameId);
     document.removeEventListener('visibilitychange',this.visibility);
     this.resizeObserver.disconnect();this.controls.dispose();
-    this.world.dispose();this.renderer.dispose();
+    this.world.dispose();this.horizonTexture.dispose();this.renderer.dispose();
   }
 }
