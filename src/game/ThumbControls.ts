@@ -1,4 +1,4 @@
-import { WORLD, type Controls } from './core';
+import { worldXFromScreenRatio, type Controls } from './core';
 
 /** Converts the active thumb into absolute horizontal positioning. Lift = jump. */
 export class ThumbControls {
@@ -22,7 +22,7 @@ export class ThumbControls {
   private point = (event: PointerEvent): void => {
     const bounds = this.canvas.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / Math.max(1, bounds.width)));
-    this.state.targetX = (ratio * 2 - 1) * (WORLD.trackWidth / 2 - .28);
+    this.state.targetX = worldXFromScreenRatio(ratio);
   };
   private down = (event: PointerEvent): void => {
     if (!this.enabled || this.pointerId !== null) return;

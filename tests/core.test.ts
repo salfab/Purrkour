@@ -1,8 +1,27 @@
 import { describe, expect, it } from 'vitest';
-import { WORLD, cratesNear, groundHeight, isGap, makePlayer, pickupsNear, simulate, type Controls } from '../src/game/core';
+import { WORLD, cratesNear, groundHeight, isGap, makePlayer, pickupsNear, simulate, worldXFromScreenRatio, type Controls } from '../src/game/core';
 
 function input(): Controls { return { targetX: null, left: false, right: false, jump: false }; }
 describe('Purrkour deterministic gameplay', () => {
+  it('maps screen-left to screen-left and screen-right to screen-right with the +Z camera', () => {
+    expect(worldXFromScreenRatio(0)).toBeGreaterThan(0);
+    expect(worldXFromScreenRatio(.5)).toBeCloseTo(0);
+    expect(worldXFromScreenRatio(1)).toBeLessThan(0);
+    const pointerPlayer=makePlayer();
+    const pointerControls=input();
+    pointerControls.targetX=worldXFromScreenRatio(.85);
+    simulate(pointerPlayer,pointerControls,new Set(),1/120);
+    expect(pointerPlayer.x).toBeLessThan(0);
+    const keyboardPlayer=makePlayer();
+    const keyboardControls=input();
+    keyboardControls.right=true;
+    simulate(keyboardPlayer,keyboardControls,new Set(),1/120);
+    expect(keyboardPlayer.x).toBeLessThan(0);
+    keyboardControls.right=false;
+    keyboardControls.left=true;
+    simulate(keyboardPlayer,keyboardControls,new Set(),1/120);
+    expect(keyboardPlayer.x).toBeCloseTo(0);
+  });
   it('creates consistent ground geometry and obstacles', () => {
     expect(groundHeight(34)).toBe(0);
     expect(groundHeight(42)).toBeCloseTo(.675);

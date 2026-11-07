@@ -22,6 +22,15 @@ export const WORLD = {
   cameraPitch: 20,
 } as const;
 
+/**
+ * Camera faces +Z, so the camera's screen-right direction is world -X.
+ * Convert a normalized horizontal touch position to the matching world X.
+ */
+export function worldXFromScreenRatio(ratio: number): number {
+  const clamped = Math.max(0, Math.min(1, ratio));
+  return (1 - 2 * clamped) * (WORLD.trackWidth / 2 - .28);
+}
+
 export type GameMode = 'menu' | 'running' | 'paused' | 'over';
 export type Failure = 'crate' | 'gap' | null;
 export interface Player {
@@ -106,7 +115,7 @@ export function simulate(player: Player, controls: Controls, collected: Set<stri
     const delta = controls.targetX - player.x;
     player.x += Math.max(-WORLD.steeringSpeed * dt, Math.min(WORLD.steeringSpeed * dt, delta));
   } else {
-    player.x += (Number(controls.right) - Number(controls.left)) * WORLD.steeringSpeed * .55 * dt;
+    player.x += (Number(controls.left) - Number(controls.right)) * WORLD.steeringSpeed * .55 * dt;
   }
   player.x = Math.max(-WORLD.trackWidth / 2 + .25, Math.min(WORLD.trackWidth / 2 - .25, player.x));
   const priorZ = player.z;

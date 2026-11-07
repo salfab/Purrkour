@@ -143,6 +143,9 @@ export class ArtWorld {
   private readonly crateMaterial:THREE.MeshLambertMaterial;
   private readonly pickupMaterials:Record<Pickup['kind'],THREE.SpriteMaterial>;
   private readonly propMaterials:{window:THREE.SpriteMaterial;flower:THREE.SpriteMaterial;banner:THREE.SpriteMaterial};
+  private readonly wallPropMaterials:{window:THREE.MeshBasicMaterial;banner:THREE.MeshBasicMaterial};
+  private readonly catAtlas:THREE.Texture;
+  private catAtlasReady=false;
   private readonly catCanvas:HTMLCanvasElement;
   private readonly catTexture:THREE.CanvasTexture;
   private readonly catSprite:THREE.Sprite;
@@ -162,6 +165,20 @@ export class ArtWorld {
     const sprite=(t:THREE.Texture)=>{const m=new THREE.SpriteMaterial({map:tex(t),transparent:true,alphaTest:.05,depthWrite:false});this.materials.push(m);return m;};
     this.pickupMaterials={fish:sprite(iconTexture('fish')),gold:sprite(iconTexture('gold')),boost:sprite(iconTexture('boost'))};
     this.propMaterials={window:sprite(iconTexture('window')),flower:sprite(iconTexture('flower')),banner:sprite(iconTexture('banner'))};
+    const onWall=(material:THREE.SpriteMaterial):THREE.MeshBasicMaterial=>{
+      const m=new THREE.MeshBasicMaterial({
+        map:material.map,
+        transparent:true,
+        alphaTest:.08,
+        depthWrite:false,
+        side:THREE.DoubleSide,
+        polygonOffset:true,
+        polygonOffsetFactor:-1,
+      });
+      this.materials.push(m);
+      return m;
+    };
+    this.wallPropMaterials={window:onWall(this.propMaterials.window),banner:onWall(this.propMaterials.banner)};
     this.catCanvas=document.createElement('canvas');
     this.catCanvas.width=128;this.catCanvas.height=128;
     this.catTexture=new THREE.CanvasTexture(this.catCanvas);
@@ -175,6 +192,29 @@ export class ArtWorld {
     this.shadow=new THREE.Mesh(new THREE.CircleGeometry(.38,24),shadowMat);
     this.shadow.rotation.x=-Math.PI/2;this.shadow.position.y=.02;
     this.cat.add(this.shadow,this.catSprite);
+    // Real hand-drawn kawaii sprites, 4 columns × 2 rows. The canvas cat
+    // above is retained exclusively as a graceful fallback while loading.
+    const atlas=new THREE.TextureLoader().load(
+      `${import.meta.env.BASE_URL}assets/character/cat_atlas.png`,
+      loaded=>{
+        loaded.colorSpace=THREE.SRGBColorSpace;
+        loaded.wrapS=THREE.RepeatWrapping;
+        loaded.wrapT=THREE.RepeatWrapping;
+        loaded.repeat.set(.25,.5);
+        this.catAtlasReady=true;
+        catMaterial.map=loaded;
+        catMaterial.needsUpdate=true;
+        this.lastFrame=-1;
+        this.drawCat(0);
+      },
+      undefined,
+      ()=>console.warn('Purrkour: kawaii cat atlas unavailable; using fallback'),
+    );
+    atlas.colorSpace=THREE.SRGBColorSpace;
+    atlas.magFilter=THREE.LinearFilter;
+    atlas.minFilter=THREE.LinearMipmapLinearFilter;
+    this.catAtlas=atlas;
+    this.textures.push(atlas);
     this.drawCat(0);
   }
   private drawCat(index:number):void{
@@ -182,6 +222,10 @@ export class ArtWorld {
     this.lastFrame=index;
     const ctx=this.catCanvas.getContext('2d');
     if(!ctx)return;
+    if(this.catAtlasReady){
+      this.catAtlas.offset.set((index%4)*.25,1-(Math.floor(index/4)+1)*.5);
+      return;
+    }
     catFrame(ctx,index);this.catTexture.needsUpdate=true;
   }
   private box(group:THREE.Group,x:number,y:number,z:number,w:number,h:number,d:number,material:THREE.Material):void{
@@ -190,6 +234,17 @@ export class ArtWorld {
   }
   private prop(group:THREE.Group,which:'window'|'flower'|'banner',x:number,y:number,z:number,w:number,h:number):void{
     const s=new THREE.Sprite(this.propMaterials[which]);s.position.set(x,y,z);s.scale.set(w,h,1);group.add(s);
+  }
+  /**
+   * A banner/window is flush with the inward-facing wall, never billboarded.
+   * The small inward offset prevents z-fighting and wall intersections.
+   */
+  private wallProp(group:THREE.Group,which:'window'|'banner',side:-1|1,y:number,z:number,w:number,h:number):void{
+    const innerWallX=side*(7-3.7/2);
+    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h),this.wallPropMaterials[which]);
+    mesh.position.set(innerWallX-side*.035,y,z);
+    mesh.rotation.y=side<0?Math.PI/2:-Math.PI/2;
+    group.add(mesh);
   }
   private createChunk(index:number):THREE.Group{
     const from=index*this.chunkLength;const to=from+this.chunkLength;const group=new THREE.Group();
@@ -241,9 +296,9 @@ export class ArtWorld {
       const floor=groundHeight(z),height=5.8+(index%4)*.65;
       this.box(group,sign*7,floor+height/2-1.8,z,3.7,height,12,left?this.wallMaterial:this.peachMaterial);
       this.box(group,sign*7,floor+height-1.75,z,4,.36,12.25,this.roofMaterial);
-      this.prop(group,'window',sign*5.05,floor+2.5,z-1.6,1.5,2);
+      this.wallProp(group,'window',sign as -1|1,floor+2.5,z-1.6,1.5,2);
       this.prop(group,'flower',sign*3.55,floor+.68,z+3.5,1.05,1.05);
-      this.prop(group,'banner',sign*5.05,floor+3.2,z+3,1.05,1.7);
+      this.wallProp(group,'banner',sign as -1|1,floor+3.2,z+3,1.05,1.7);
     }
     return group;
   }
