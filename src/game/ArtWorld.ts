@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { WORLD, cratesNear, groundHeight, isGap, pickupsNear, type Pickup, type Player } from './core';
 import { gapEdgesInRange } from './backdropMath';
 import {ROUTE_FORK,activeRoute,type RouteChoice} from './routeChoices';
-import {routePoint,ROUTE_PREVIEW_END} from './routeGeometry';
+import {routePoint,streamedRoadInterval} from './routeGeometry';
 
 function canvasTexture(size: number, paint: (ctx: CanvasRenderingContext2D, size: number) => void): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -452,13 +452,9 @@ export class ArtWorld {
     // Exact ownership split: ArtWorld draws the trunk until 250 m and the
     // active route from 288 m onward. The short Y preview owns 250..288
     // before AND after the decision, so no geometry changes under the player.
-    const visualStart=from<ROUTE_FORK.chooseZ
-      ? from
-      : Math.max(from,ROUTE_PREVIEW_END);
-    const visualEnd=from<ROUTE_FORK.chooseZ
-      ? Math.min(to,ROUTE_FORK.chooseZ)
-      : route===null?visualStart:to;
-    if(visualStart>=visualEnd)return group;
+    const interval=streamedRoadInterval(from,to,route);
+    if(interval===null)return group;
+    const {start:visualStart,end:visualEnd}=interval;
     const vertices:number[]=[];const uv:number[]=[];
     const terrainVertices:number[]=[];const terrainUv:number[]=[];
     const terrainTop=(z:number)=>groundHeight(z)-1.8;

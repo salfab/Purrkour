@@ -2,12 +2,25 @@ import {describe,it,expect} from 'vitest';
 import {
   ROUTE_CURVE,ROUTE_DETOUR_END,FAKE_MERGE,
   routePose,routePoint,fakeMergePose,fakeMergePoint,alternativeBranch,turnFraming,
-  ROUTE_PREVIEW_END,branchRoadEdges,
+  ROUTE_PREVIEW_END,branchRoadEdges,streamedRoadInterval,
 } from '../src/game/routeGeometry';
 import {ROUTE_FORK} from '../src/game/routeChoices';
 import {isGap} from '../src/game/core';
 
 describe('short lateral detour and fake 45-degree merge',()=>{
+  it('keeps the playable scene disjoint from the two permanent fork previews',()=>{
+    expect(streamedRoadInterval(240,252,null)).toEqual({start:240,end:250});
+    expect(streamedRoadInterval(240,252,'fish')).toEqual({start:240,end:250});
+    for(let chunk=252;chunk<288;chunk+=12){
+      expect(streamedRoadInterval(chunk,chunk+12,null)).toBeNull();
+      expect(streamedRoadInterval(chunk,chunk+12,'fish')).toBeNull();
+      expect(streamedRoadInterval(chunk,chunk+12,'acro')).toBeNull();
+    }
+    expect(streamedRoadInterval(288,300,null)).toBeNull();
+    expect(streamedRoadInterval(288,300,'fish')).toEqual({start:288,end:300});
+    expect(streamedRoadInterval(288,300,'acro')).toEqual({start:288,end:300});
+  });
+
   it('keeps one 288m stitch boundary and non-overlapping Y halves',()=>{
     expect(ROUTE_PREVIEW_END).toBe(288);
     expect(ROUTE_PREVIEW_END).toBeGreaterThan(ROUTE_DETOUR_END);

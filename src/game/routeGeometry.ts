@@ -32,6 +32,19 @@ export const ROUTE_DETOUR_END=ROUTE_CURVE.split+halfArc*2;
  */
 export const ROUTE_PREVIEW_END=288;
 
+/** Non-overlapping ownership of the track's visible pavement. */
+export function streamedRoadInterval(
+  from:number,to:number,choice:RouteChoice|null,
+):{start:number;end:number}|null{
+  if(from<ROUTE_CURVE.split){
+    const end=Math.min(to,ROUTE_CURVE.split);
+    return from<end?{start:from,end}:null;
+  }
+  if(choice===null)return null;
+  const start=Math.max(from,ROUTE_PREVIEW_END);
+  return start<to?{start,end:to}:null;
+}
+
 /**
  * In the fork, each branch starts as HALF the common road and smoothly opens
  * to the full width. The two halves share only an edge, not overlapping faces.
