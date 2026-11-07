@@ -76,7 +76,9 @@ export class PurrkourGame {
     this.camera.updateProjectionMatrix();
   }
   start():void{
-    this.player=makePlayer();this.collected.clear();
+    const runSeed=Date.now()|0;
+    this.player=makePlayer(runSeed);this.collected.clear();
+    this.world.resetRun(runSeed);
     this.accumulator=0;this.hudTimer=0;
     this.mode='running';this.controls.setEnabled(true);
     this.playMusic();

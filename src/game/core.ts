@@ -1,4 +1,5 @@
 /** Pure, deterministic Purrkour gameplay. No browser or Three.js dependencies. */
+import {segmentPlan,patternHasCrate,safeLaneX} from './gameplayDirector';
 export const WORLD = {
   trackWidth: 5,
   segmentLength: 100,
@@ -36,7 +37,7 @@ export type Failure = 'crate' | 'gap' | null;
 export interface Player {
   x: number; y: number; z: number; vy: number; grounded: boolean; coyote: number;
   elapsed: number; speed: number; boost: number; anim: number; score: number;
-  fish: number; bounces: number; failure: Failure;
+  fish: number; bounces: number; failure: Failure; runSeed:number;
 }
 export interface Controls {
   targetX: number | null; left: boolean; right: boolean; jump: boolean;
@@ -63,19 +64,23 @@ export function isGap(z: number): boolean {
   const local = z % WORLD.segmentLength;
   return local >= WORLD.gapStart && local <= WORLD.gapEnd;
 }
-export function cratesNear(start: number, end: number): Crate[] {
-  const result: Crate[] = [];
-  for (let k = Math.max(0, Math.floor(start / 100) - 1); k <= Math.floor(end / 100) + 1; k++) {
-    const base = k * 100;
-    result.push(
-      { id: 'a-' + k, x: -1.35, z: base + 18, width: 1.2, height: .85, depth: 1.7 },
-      { id: 'b-' + k, x: 1.30, z: base + 41, width: 1.2, height: .85, depth: 1.7 },
-      { id: 'c-' + k, x: 0, z: base + 88, width: 1.2, height: .85, depth: 1.7 },
-    );
+export function cratesNear(start:number,end:number,runSeed=0):Crate[]{
+  const crates:Crate[]=[];
+  for(let k=Math.max(0,Math.floor(start/100)-1);k<=Math.floor(end/100)+1;k++){
+    const base=k*100;
+    for(const placement of segmentPlan(k,runSeed).placements){
+      if(!patternHasCrate(placement.id))continue;
+      const label=placement.slot==='intro'?'a':placement.slot==='choice'?'b':placement.slot==='pressure'?'t':'c';
+      crates.push({
+        id:label+'-'+k,
+        x:placement.x,z:base+placement.at,width:1.2,depth:1.7,height:.85,
+      });
+    }
   }
-  return result.filter(c => c.z >= start - 2 && c.z <= end + 2);
+  return crates.filter(c=>c.z>=start-2&&c.z<=end+2);
 }
-export function pickupsNear(start:number,end:number):Pickup[]{
+
+export function pickupsNear(start:number,end:number,runSeed=0):Pickup[]{
   const result:Pickup[]=[];
   for(let k=Math.max(0,Math.floor(start/100)-1);k<=Math.floor(end/100)+1;k++){
     const base=k*100;
@@ -83,41 +88,59 @@ export function pickupsNear(start:number,end:number):Pickup[]{
       const z=base+localZ;
       result.push({id:id+'-'+k,kind,x,z,y:groundHeight(z)+height,points,fishes,rangeX:rx,rangeY:ry,rangeZ:rz});
     };
-    const fishLine=(label:string,positions:readonly number[],at:number,spacing:number):void=>{
-      positions.forEach((x,i)=>add(label+'-'+i,'fish',x,at+i*spacing,.4,10,1));
+    const fishLine=(label:string,positions:readonly number[],at:number,spacing:number,height=.4):void=>{
+      positions.forEach((x,i)=>add(label+'-'+i,'fish',x,at+i*spacing,height,10,1));
     };
-    // A rhythm cycle: flow -> choice -> boost -> risk -> release.
+    // Every segment starts with a gentle visual/collection cue.
     fishLine('opening',[-1.6,-.8,0,.8,1.6],8,.65);
-    add('gold-jump-a','gold',-1.35,19.2,2.30,100,3,.58,.64,.95);
-    fishLine('safe-route-a',[.4,1.05,1.7],20.4,.70);
-    add('speed-boost','boost',.75,28,.68,120,0,.48,.56,.54);
-    fishLine('boost-trail',[.75,.3,-.15,-.60,-1.05],29,.65);
-    fishLine('ramp-fish',[1.42,1.42,.75,.75],33.4,.92);
-    // Higher rewards unlock after 100 meters. Alternating jump and bounce
-    // sequences remain in every subsequent cycle.
-    const highB=k>=1;
-    add(highB?'sky-bounce-b':'gold-jump-b',highB?'sky':'gold',1.3,highB?43.0:42.2,highB?2.95:2.38,highB?180:100,highB?5:3,.58,highB?.46:.66,.98);
-    if(highB){
-      [2.15,1.77,1.38,.96].forEach((height,i)=>{
-        add('bounce-arc-b-'+i,'fish',1.3,44.1+i*.72,height,18,1,.36,.50,.54);
-      });
-      fishLine('safe-route-b',[-1.55,-1.05,-.55],42,.7);
+    const plan=segmentPlan(k,runSeed);
+    const beforeGap=plan.placements.find(p=>p.slot==='pressure');
+    for(const p of plan.placements){
+      const {id,at,x,slot}=p;
+      const prefix=slot+'-'+id;
+      if(id==='fish-lane'){
+        fishLine(prefix,[x-.55,x-.28,x,x+.28,x+.55].map(v=>Math.max(-1.65,Math.min(1.65,v))),at,.85);
+      }else if(id==='recovery-strip'){
+        fishLine(prefix,[-1.4,-.9,-.4,.4,.9,1.4],at,1.05);
+      }else if(id==='slalom'){
+        const dir=k%2===0?1:-1;
+        fishLine(prefix,[-1.45,-.55,.55,1.45].map(v=>dir*v),at-1.8,.82);
+      }else if(id==='boost-trail'){
+        add(prefix+'-star','boost',x,at,.7,120,0,.46,.56,.55);
+        fishLine(prefix+'-trail',[x,x*.72,x*.4,0,-x*.4],at+1.05,.65,.55);
+      }else if(id==='weave'){
+        const sx=safeLaneX(x);
+        fishLine(prefix+'-safe',[sx,sx,sx],at-2.5,1,.42);
+        fishLine(prefix+'-exit',[-.65,0,.65],at+3,.82,.42);
+      }else{
+        const bounce=id==='bounce-grab';
+        const premium=bounce?180:100;
+        add(prefix+'-gold',bounce?'sky':'gold',x,at+(bounce?2:1.2),bounce?2.95:2.36,premium,bounce?5:3,.58,bounce?.46:.66,.98);
+        // A separate safe reward route prevents forcing the hard bounce.
+        const safe=safeLaneX(x);
+        fishLine(prefix+'-safe',[safe,safe,safe],at+1.2,.68,.4);
+        if(bounce){
+          [2.15,1.77,1.38,.96].forEach((height,i)=>{
+            add(prefix+'-arc-'+i,'fish',x,at+3.1+i*.72,height,18,1,.36,.50,.54);
+          });
+        }
+      }
     }
-    fishLine('slalom',[-1.45,-.55,.55,1.45],54.2,.82);
-    const highC=k>=2&&k%2===0;
-    add(highC?'sky-bounce-c':'gold-jump-c',highC?'sky':'gold',0,highC?90.0:89.15,highC?3.02:2.38,highC?180:100,highC?5:3,.58,highC?.46:.66,.98);
-    if(highC){
-      [2.1,1.7,1.3,.9].forEach((height,i)=>{
-        add('bounce-arc-c-'+i,'fish',0,91.1+i*.72,height,18,1,.36,.5,.54);
-      });
-      fishLine('safe-route-c',[-1.5,-1.0,1.0,1.5],89.4,.58);
+    // Preserve the original easy star during the tutorial; later cycles
+    // have explicitly selected boost patterns rather than guaranteed boosts.
+    if(k===0){
+      add('speed-boost','boost',.75,28,.68,120,0,.48,.56,.54);
+      fishLine('boost-trail',[.75,.3,-.15,-.60,-1.05],29,.65);
+      fishLine('ramp-fish',[1.42,1.42,.75,.75],33.4,.92);
+    }else if(beforeGap?.id!=='weave'){
+      fishLine('gap-approach',[1.3,1.3],61.5,1,.45);
     }
   }
   return result.filter(item=>item.z>=start-2&&item.z<=end+2);
 }
-export function makePlayer(): Player {
+export function makePlayer(runSeed=0): Player {
   return { x: 0, y: 0, z: 0, vy: 0, grounded: true, coyote: .1, elapsed: 0,
-    speed: WORLD.speedStart, boost: 0, anim: 0, score: 0, fish: 0, bounces: 0, failure: null };
+    speed: WORLD.speedStart, boost: 0, anim: 0, score: 0, fish: 0, bounces: 0, failure: null,runSeed };
 }
 export function simulate(player: Player, controls: Controls, collected: Set<string>, dt: number): void {
   if (player.failure) return;
@@ -146,7 +169,7 @@ export function simulate(player: Player, controls: Controls, collected: Set<stri
     player.vy -= WORLD.gravity * dt;
     player.y += player.vy * dt;
   }
-  const crates = cratesNear(priorZ - 2, player.z + 2).filter(crate =>
+  const crates = cratesNear(priorZ - 2, player.z + 2, player.runSeed).filter(crate =>
     Math.abs(player.x - crate.x) < crate.width / 2 + .28 &&
     Math.abs(player.z - crate.z) < crate.depth / 2 + .3);
   let bounced = false;
@@ -186,7 +209,7 @@ export function simulate(player: Player, controls: Controls, collected: Set<stri
     }
   }
   if (player.failure) return;
-  for (const item of pickupsNear(player.z - 1.2, player.z + 1.6)) {
+  for (const item of pickupsNear(player.z - 1.2, player.z + 1.6, player.runSeed)) {
     if (collected.has(item.id)) continue;
     if (Math.abs(player.x - item.x) < item.rangeX &&
         Math.abs(player.z - item.z) < item.rangeZ &&

@@ -48,13 +48,13 @@ export function App() {
         <button type="button" className="icon-btn" aria-label="Mettre le jeu en pause" disabled={!running} onClick={()=>game.current?.pause()}>Ⅱ</button>
       </div>
     </header>
-    {running&&<div className="touch-tip" aria-hidden="true">
+    {running&&status.distance<42&&<div className="touch-tip" aria-hidden="true">
       <strong>↔ GLISSE LE POUCE POUR DIRIGER</strong>
       <span>↑ RELÂCHE POUR SAUTER</span>
     </div>}
     {!running&&<section className="overlay">
       <div className="dialog">
-        <div className="eyebrow">PURRKOUR · V0.8 · MOBILE FIRST</div>
+        <div className="eyebrow">PURRKOUR · V0.10 · MOBILE FIRST</div>
         <h1>Purrkour 🐈</h1>
         {error&&<p className="error">Impossible de démarrer le jeu : {error}</p>}
         {!error&&status.mode==='menu'&&<>
@@ -86,7 +86,7 @@ export function App() {
           </div>
           <button type="button" onClick={()=>game.current?.start()}>Rejouer</button>
         </>}
-        <p>Prototype mobile v0.8 · Art raster et rythme de jeu enrichi.</p>
+        <p>Prototype mobile v0.10 · Premier directeur de patterns.</p>
       </div>
     </section>}
   </main>;

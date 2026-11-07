@@ -80,3 +80,9 @@ des solutions de repli si un chargement échoue.
 La bande-son originale est versionnée sous le nom technique
 `public/assets/audio/soundtrack_1.mp3` (fichier identique à la composition
 fournie, renommé sans changement audio).
+
+## Première rotation de patterns (v0.10)
+
+`src/game/gameplayDirector.ts` choisit parmi 8 séquences écrites à la main, en fonction de la distance et d'une graine unique par run. Les caisses et les poissons sont générés depuis le même plan, ce qui garantit leur alignement. Le tutoriel des 200 premiers mètres reste reproductible. La génération des fossés, l'équilibrage temporel et le combo seront travaillés plus tard. Voir [docs/GAMEPLAY.md](docs/GAMEPLAY.md) pour les détails.
+
+Le sprite du chat est désormais symétrisé lorsqu'il est à droite de l'écran. Un nouvel atlas de course vue arrière reste à produire. Les instructions tactiles disparaissent après 42 m.

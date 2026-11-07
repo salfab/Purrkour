@@ -149,3 +149,16 @@ Avant de produire plus de mécaniques :
 ---
 
 **Règle de maintenance :** mettre à jour les colonnes « Statut » et « Implémentation réelle » à chaque changement majeur du gameplay. Ne jamais présenter les mécaniques de cette spécification comme fonctionnelles avant leurs tests et leur déploiement.
+
+
+## 10. Première implémentation du directeur (v0.10)
+
+**✅ Implémenté partiellement.** `src/game/gameplayDirector.ts` contient 8 patterns typés : Fish Lane, Jump & Grab, Bounce & Grab, Safe or Skill, Boost Trail, Slalom, Weave, Recovery Strip. Les quatre positions d'événement restent prévisibles dans chaque cycle de 100 m, et les fossés restent fixes ; **ce n'est pas encore un level designer procédural complet**.
+
+- 0–100 m : tutoriel fixe ; 100–200 m : premier Bounce & Grab.
+- Après 200 m : choix déterministe par graine de run et palier de distance, avec des variantes de trajectoires, caisses et poissons associées au même plan.
+- Le code de simulation et Three.js utilisent le même run seed, évitant qu'un poisson soit dissocié de sa caisse.
+- Les quatre phases Flow, Choix, Tension et Récompense sont représentées par quatre slots ; les timings en secondes et la densité adaptative ne sont pas encore implémentés.
+- Les caisses sont individuelles et laissent un côté libre ; la faisabilité complète de toutes les trajectoires (notamment boost et récupération) n'est **pas encore validée par une simulation automatique**.
+- Le sprite existant est inversé à droite. Il faudra créer un atlas spécifique de course vue arrière pour centrer proprement le personnage.
+- Les consignes tactiles disparaissent au-delà de 42 m.

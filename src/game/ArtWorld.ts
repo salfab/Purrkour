@@ -183,6 +183,7 @@ export class ArtWorld {
   private readonly shadow:THREE.Mesh<THREE.CircleGeometry,THREE.MeshBasicMaterial>;
   private lastFrame=-1;
   private readonly chunkLength=12;
+  private activeRunSeed=0;
   constructor(){
     const tex=(texture:THREE.Texture)=>{this.textures.push(texture);return texture;};
     const mat=(t:THREE.Texture)=>{const m=new THREE.MeshLambertMaterial({map:tex(t),side:THREE.DoubleSide});this.materials.push(m);return m;};
@@ -304,7 +305,7 @@ export class ArtWorld {
     mesh.rotation.y=side<0?Math.PI/2:-Math.PI/2;
     group.add(mesh);
   }
-  private createChunk(index:number):THREE.Group{
+  private createChunk(index:number,runSeed:number):THREE.Group{
     const from=index*this.chunkLength;const to=from+this.chunkLength;const group=new THREE.Group();
     const vertices:number[]=[];const uv:number[]=[];
     const terrainVertices:number[]=[];const terrainUv:number[]=[];
@@ -373,11 +374,11 @@ export class ArtWorld {
       this.box(group,-2.59,y-.88,z+1,.18,1.75,2,this.terraceMaterial);
       this.box(group,2.59,y-.88,z+1,.18,1.75,2,this.terraceMaterial);
     }
-    for(const c of cratesNear(from,to)){
+    for(const c of cratesNear(from,to,runSeed)){
       if(c.z<from||c.z>=to)continue;
       this.box(group,c.x,groundHeight(c.z)+c.height/2,c.z,c.width,c.height,c.depth,this.crateMaterial);
     }
-    for(const p of pickupsNear(from,to)){
+    for(const p of pickupsNear(from,to,runSeed)){
       if(p.z<from||p.z>=to)continue;
       const sprite=new THREE.Sprite(this.pickupMaterials[p.kind]);
       const size=p.kind==='sky'?1.15:p.kind==='gold'?.96:p.kind==='boost'?.85:.7;
@@ -396,11 +397,21 @@ export class ArtWorld {
     }
     return group;
   }
+  resetRun(seed:number):void{
+    for(const chunk of this.chunks.values()){
+      chunk.traverse(obj=>{if(obj instanceof THREE.Mesh)obj.geometry.dispose();});
+      this.group.remove(chunk);
+    }
+    this.chunks.clear();
+    this.pickups.clear();
+    this.activeRunSeed=seed;
+  }
   update(player:Player,collected:ReadonlySet<string>):void{
+    if(player.runSeed!==this.activeRunSeed)this.resetRun(player.runSeed);
     const start=Math.max(0,Math.floor((player.z-15)/this.chunkLength));
     const end=Math.floor((player.z+80)/this.chunkLength);
     for(let i=start;i<=end;i++)if(!this.chunks.has(i)){
-      const chunk=this.createChunk(i);this.chunks.set(i,chunk);this.group.add(chunk);
+      const chunk=this.createChunk(i,this.activeRunSeed);this.chunks.set(i,chunk);this.group.add(chunk);
     }
     for(const [i,chunk] of this.chunks){
       if(i>=start&&i<=end)continue;
@@ -417,13 +428,15 @@ export class ArtWorld {
       sprite.position.y=item.y+Math.sin(player.elapsed*4+item.z*.3)*.065;
     }
     this.cat.position.set(player.x,player.y,player.z);
+    // Three.Sprite uses a signed X scale; mirror the existing animation when
+    // the cat is on the screen-right side (negative world X for our camera).
+    this.catSprite.scale.x=player.x<-.28?-1.9:1.9;
     this.shadow.position.y=groundHeight(player.z)-player.y+.025;
     (this.shadow.material as THREE.MeshBasicMaterial).opacity=player.grounded?.3:Math.max(.08,.3-(player.y-groundHeight(player.z))*.055);
     this.drawCat(player.boost>0?7:!player.grounded?6:Math.floor(player.anim)%6);
   }
   dispose():void{
-    for(const chunk of this.chunks.values())chunk.traverse(obj=>{if(obj instanceof THREE.Mesh)obj.geometry.dispose();});
-    this.chunks.clear();this.pickups.clear();
+    this.resetRun(0);
     this.shadow.geometry.dispose();
     this.materials.forEach(m=>m.dispose());
     this.textures.forEach(t=>t.dispose());

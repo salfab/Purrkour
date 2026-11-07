@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { WORLD, cratesNear, groundHeight, isGap, makePlayer, pickupsNear, simulate, worldXFromScreenRatio, type Controls } from '../src/game/core';
+import {segmentPlan,patternHasCrate} from '../src/game/gameplayDirector';
 
 function input(): Controls { return { targetX: null, left: false, right: false, jump: false }; }
 describe('Purrkour deterministic gameplay', () => {
@@ -31,10 +32,10 @@ describe('Purrkour deterministic gameplay', () => {
     expect(pickupsNear(0,100).some(p => p.kind === 'sky')).toBe(false);
     expect(pickupsNear(100,200).some(p => p.kind === 'sky')).toBe(true);
     expect(pickupsNear(100,200).some(p => p.kind === 'gold')).toBe(true);
-    expect(pickupsNear(100,200).some(p => p.id.startsWith('boost-trail'))).toBe(true);
+    expect(pickupsNear(0,100).some(p => p.id.startsWith('boost-trail'))).toBe(true);
   });
   it('places advanced fish beyond normal jump reach but within a crate bounce arc', () => {
-    const sky = pickupsNear(100,200).find(p=>p.kind==='sky' && p.id==='sky-bounce-b-1');
+    const sky = pickupsNear(100,200).find(p=>p.kind==='sky' && p.id==='choice-bounce-grab-gold-1');
     const crate = cratesNear(100,200).find(c=>c.id==='b-1');
     expect(sky).toBeDefined();
     expect(crate).toBeDefined();
