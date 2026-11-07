@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { WORLD, cratesNear, groundHeight, isGap, makePlayer, pickupsNear, simulate, worldXFromScreenRatio, type Controls } from '../src/game/core';
-import {segmentPlan,patternHasCrate} from '../src/game/gameplayDirector';
 
 function input(): Controls { return { targetX: null, left: false, right: false, jump: false }; }
 describe('Purrkour deterministic gameplay', () => {
