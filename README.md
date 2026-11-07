@@ -58,3 +58,23 @@ La lecture de musique, la pause/reprise, la boucle et le bouton muet sont intég
 **Le MP3 original n'est pas encore présent dans le dépôt.** L'intégration GitHub permet les modifications de code et les petits fichiers, mais ne permet pas d'envoyer directement les 3,9 Mo de musique depuis les fichiers locaux de la conversation. Pour l'activer, envoyer l'enregistrement à ce chemin exact. Après le push, GitHub Actions publiera automatiquement la musique.
 
 Les droits sur la composition ont été confirmés par son auteur. Conserver l'attribution et le fichier source lors de l'ajout.
+
+
+## Décor et fossés (art pass v0.9)
+
+Le panorama raster AVIF est rendu dans un plan lointain séparé, jamais comme
+`scene.background`. Les proportions de l’image sont conservées, le bas de la
+référence est recadré et les bords sont fondus dans le ciel. Le défilement
+horizontal est lent et borné : il ne modifie ni la caméra ni la jouabilité.
+
+Les fossés présentent désormais une rue inférieure pavée (comme les rues
+latérales), des murs de descente aux deux lèvres et une bordure visible. La
+simulation de chute et les collisions ne sont pas modifiées.
+
+La piste et les façades utilisent les textures WebP générées et versionnées
+dans `public/assets/textures/`; les textures Canvas intégrées au code restent
+des solutions de repli si un chargement échoue.
+
+La bande-son originale est versionnée sous le nom technique
+`public/assets/audio/soundtrack_1.mp3` (fichier identique à la composition
+fournie, renommé sans changement audio).

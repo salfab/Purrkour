@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { WORLD, cratesNear, groundHeight, isGap, pickupsNear, type Pickup, type Player } from './core';
+import { gapEdgesInRange } from './backdropMath';
 
 function canvasTexture(size: number, paint: (ctx: CanvasRenderingContext2D, size: number) => void): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -166,6 +167,7 @@ export class ArtWorld {
   private readonly groundMaterial:THREE.MeshLambertMaterial;
   private readonly terraceMaterial:THREE.MeshLambertMaterial;
   private readonly edgeMaterial:THREE.MeshLambertMaterial;
+  private readonly gapLipMaterial:THREE.MeshLambertMaterial;
   private readonly wallMaterial:THREE.MeshLambertMaterial;
   private readonly peachMaterial:THREE.MeshLambertMaterial;
   private readonly roofMaterial:THREE.MeshLambertMaterial;
@@ -195,7 +197,8 @@ export class ArtWorld {
     this.loadPaintedTexture('stucco_cream_v2.webp',this.wallMaterial,2.1,1.5);
     this.loadPaintedTexture('stucco_peach_v2.webp',this.peachMaterial,2.1,1.5);
     this.edgeMaterial=new THREE.MeshLambertMaterial({color:'#f3d39d'});
-    this.materials.push(this.edgeMaterial);
+    this.gapLipMaterial=new THREE.MeshLambertMaterial({color:'#be9578'});
+    this.materials.push(this.edgeMaterial,this.gapLipMaterial);
     const sprite=(t:THREE.Texture)=>{const m=new THREE.SpriteMaterial({map:tex(t),transparent:true,alphaTest:.05,depthWrite:false});this.materials.push(m);return m;};
     this.pickupMaterials={fish:sprite(iconTexture('fish')),gold:sprite(iconTexture('gold')),sky:sprite(iconTexture('gold')),boost:sprite(iconTexture('boost'))};
     this.propMaterials={window:sprite(iconTexture('window')),flower:sprite(iconTexture('flower')),banner:sprite(iconTexture('banner'))};
@@ -324,7 +327,16 @@ export class ArtWorld {
       bounds.sort((a,b)=>a-b);
       for(let i=0;i<bounds.length-1;i++){
         const near=bounds[i],far=bounds[i+1];
-        if(near===undefined||far===undefined||isGap((near+far)/2))continue;
+        if(near===undefined||far===undefined)continue;
+        if(isGap((near+far)/2)){
+          // A lower cross-street continues between the two upper sidewalks.
+          // The player still falls: only the graphic representation changes.
+          const a=terrainTop(near),b=terrainTop(far);
+          const x0=-WORLD.trackWidth/2-.2,x1=WORLD.trackWidth/2+.2;
+          terrainVertices.push(x0,a,near,x0,b,far,x1,a,near,x0,b,far,x1,b,far,x1,a,near);
+          terrainUv.push(x0*.21,near*.36,x0*.21,far*.36,x1*.21,near*.36,x0*.21,far*.36,x1*.21,far*.36,x1*.21,near*.36);
+          continue;
+        }
         const a=groundHeight(near),b=groundHeight(far),w=WORLD.trackWidth/2;
         vertices.push(-w,a,near,-w,b,far,w,a,near,-w,b,far,w,b,far,w,a,near);
         uv.push(0,near*.45,0,far*.45,2.5,near*.45,0,far*.45,2.5,far*.45,2.5,near*.45);
@@ -344,8 +356,16 @@ export class ArtWorld {
       geo.computeVertexNormals();
       group.add(new THREE.Mesh(geo,this.groundMaterial));
     }
+    // Each lip curves visually down into the lower street rather than ending
+    // as a paper-thin horizontal sheet.
+    for(const lip of gapEdgesInRange(from,to,WORLD.gapStart,WORLD.gapEnd,WORLD.segmentLength)){
+      const floor=groundHeight(lip);
+      const depth=1.8;
+      this.box(group,0,floor-depth/2,lip,WORLD.trackWidth,depth,.13,this.gapLipMaterial);
+      this.box(group,0,floor+.035,lip,WORLD.trackWidth,.07,.17,this.edgeMaterial);
+    }
     for(let z=from;z<to;z+=2){
-      if(isGap(z+1))continue;
+      if(isGap(z)||isGap(z+1)||isGap(z+2))continue;
       const y=groundHeight(z+1);
       this.box(group,-2.6,y+.11,z+1,.24,.26,2,this.edgeMaterial);
       this.box(group,2.6,y+.11,z+1,.24,.26,2,this.edgeMaterial);

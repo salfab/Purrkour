@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { WORLD, groundHeight, makePlayer, simulate, type GameMode, type Player, type Snapshot } from './core';
 import { ArtWorld } from './ArtWorld';
 import { ThumbControls } from './ThumbControls';
+import { ScenicBackdrop } from './ScenicBackdrop';
 
 export type UpdateListener = (snapshot: Snapshot) => void;
 
@@ -17,7 +18,7 @@ export class PurrkourGame {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly camera=new THREE.PerspectiveCamera(64,1,.1,180);
   private readonly scene=new THREE.Scene();
-  private readonly horizonTexture:THREE.Texture;
+  private readonly backdrop=new ScenicBackdrop();
   private readonly world=new ArtWorld();
   private readonly controls: ThumbControls;
   private readonly music:HTMLAudioElement;
@@ -42,21 +43,15 @@ export class PurrkourGame {
     this.renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
     this.renderer.setPixelRatio(Math.min(1.5,window.devicePixelRatio||1));
     this.renderer.outputColorSpace=THREE.SRGBColorSpace;
-    this.scene.background=new THREE.Color('#bfe6f5');
-    const horizon=new THREE.TextureLoader().load(
-      `${import.meta.env.BASE_URL}assets/backgrounds/mediterranean_horizon.avif`,
-      texture=>{ texture.colorSpace=THREE.SRGBColorSpace; this.scene.background=texture; },
-      undefined,
-      ()=>console.warn('Purrkour: horizon image unavailable; using sky color'),
-    );
-    horizon.colorSpace=THREE.SRGBColorSpace;
-    this.horizonTexture=horizon;
-    this.scene.fog=new THREE.Fog('#bfe6f5',38,120);
+    // The sky remains a single color. The illustrated town is an independent
+    // world-space panorama, so mobile aspect ratios never stretch the picture.
+    this.scene.background=new THREE.Color('#a9d4e8');
+    this.scene.fog=new THREE.Fog('#c8dbe0',34,108);
     this.scene.add(new THREE.HemisphereLight('#ffffff','#bc9e91',2.1));
     const sunlight=new THREE.DirectionalLight('#fff3d6',2.4);
     sunlight.position.set(-7,15,-10);this.scene.add(sunlight);
-    this.scene.add(this.world.group,this.world.cat);
-    this.music=new Audio(`${import.meta.env.BASE_URL}assets/audio/music.mp3`);
+    this.scene.add(this.backdrop.group,this.world.group,this.world.cat);
+    this.music=new Audio(`${import.meta.env.BASE_URL}assets/audio/soundtrack_1.mp3`);
     this.music.loop=true;
     this.music.preload='auto';
     this.music.volume=.35;
@@ -133,6 +128,7 @@ export class PurrkourGame {
     const y=groundHeight(this.player.z)+WORLD.cameraHeight,z=this.player.z-WORLD.cameraDistance;
     this.camera.position.set(0,y,z);
     this.camera.lookAt(0,y-12*Math.sin(radians),z+12*Math.cos(radians));
+    this.backdrop.update(this.player.z,groundHeight(this.player.z));
     this.renderer.render(this.scene,this.camera);
     this.frameId=requestAnimationFrame(this.frame);
   };
@@ -160,6 +156,6 @@ export class PurrkourGame {
     document.removeEventListener('visibilitychange',this.visibility);
     this.resizeObserver.disconnect();this.controls.dispose();
     this.music.pause();this.music.removeAttribute('src');this.music.load();
-    this.world.dispose();this.horizonTexture.dispose();this.renderer.dispose();
+    this.world.dispose();this.backdrop.dispose();this.renderer.dispose();
   }
 }
