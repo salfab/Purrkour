@@ -41,9 +41,13 @@ pnpm dev
 
 ## État du prototype
 
-Cette première version poussée directement depuis ChatGPT utilise des textures et un chat illustré **générés procéduralement dans le navigateur**, afin d'avoir un projet qui démarre sans dépendances d'assets téléchargés. Le spritesheet kawaii original, les textures peintes haute résolution et la musique de fond ont été conservés dans l'archive v0.7 créée précédemment, mais **ne sont pas encore présents dans ce dépôt**. Il faudra les importer séparément après vérification des droits de diffusion de la musique.
+Le prototype utilise désormais le spritesheet kawaii original, des textures peintes compressées et la bande-son originale. Des matériaux procéduraux restent disponibles comme solutions de repli. Le gameplay est encore basé sur des séquences déterministes répétées, avant la mise en place du directeur de patterns.
 
 Les poissons récoltés s'ajoutent à une réserve locale en fin de run. Le système de déverrouillage permanent reste à développer.
+
+## Documentation gameplay
+
+- [Gameplay Design Document — phases, patterns, difficulté et état réel des fonctionnalités](docs/GAMEPLAY.md)
 
 ## Version v0.8 — textures et gameplay
 
@@ -53,9 +57,7 @@ Les poissons apparaissent en séquences variées : collecte simple, slalom, boos
 
 ## Musique originale
 
-La lecture de musique, la pause/reprise, la boucle et le bouton muet sont intégrés. Le lecteur attend le fichier `public/assets/audio/music.mp3`.
-
-**Le MP3 original n'est pas encore présent dans le dépôt.** L'intégration GitHub permet les modifications de code et les petits fichiers, mais ne permet pas d'envoyer directement les 3,9 Mo de musique depuis les fichiers locaux de la conversation. Pour l'activer, envoyer l'enregistrement à ce chemin exact. Après le push, GitHub Actions publiera automatiquement la musique.
+La lecture de musique, la pause/reprise, la boucle et le bouton muet sont intégrés. Le fichier musical original est versionné sous le nom technique `public/assets/audio/soundtrack_1.mp3` et chargé par le jeu.
 
 Les droits sur la composition ont été confirmés par son auteur. Conserver l'attribution et le fichier source lors de l'ajout.
 
