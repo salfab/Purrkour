@@ -79,6 +79,7 @@ export class RouteForkView {
   private buildRoad(choice:RouteChoice,pavement:THREE.Material):THREE.Group{
     const group=new THREE.Group();
     const verts:number[]=[],uv:number[]=[];
+    const sideVerts:number[]=[],sideUv:number[]=[];
     const half=WORLD.trackWidth/2;
     for(let s=ROUTE_CURVE.split;s<ROUTE_JOIN_DISTANCE;s+=.65){
       const n=Math.min(ROUTE_JOIN_DISTANCE,s+.65);
@@ -89,12 +90,32 @@ export class RouteForkView {
       verts.push(a.x,a.y,a.z,b.x,b.y,b.z,c.x,c.y,c.z,
                  b.x,b.y,b.z,d.x,d.y,d.z,c.x,c.y,c.z);
       uv.push(0,s*.45,0,n*.45,2.5,s*.45,0,n*.45,2.5,n*.45,2.5,s*.45);
+      // Lower streets support the side houses even on the decorative branch.
+      const lower=groundHeight(s)-1.8;
+      const lowerNext=groundHeight(n)-1.8;
+      for(const [x0,x1] of [[-9.5,-2.7],[2.7,9.5]] as const){
+        const e=routePoint(s,x0,choice,lower);
+        const f=routePoint(n,x0,choice,lowerNext);
+        const g=routePoint(s,x1,choice,lower);
+        const h=routePoint(n,x1,choice,lowerNext);
+        sideVerts.push(e.x,e.y,e.z,f.x,f.y,f.z,g.x,g.y,g.z,
+                       f.x,f.y,f.z,h.x,h.y,h.z,g.x,g.y,g.z);
+        sideUv.push(x0*.2,s*.35,x0*.2,n*.35,x1*.2,s*.35,
+                    x0*.2,n*.35,x1*.2,n*.35,x1*.2,s*.35);
+      }
     }
     const geo=new THREE.BufferGeometry();
     geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
     geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
     geo.computeVertexNormals();
     group.add(new THREE.Mesh(geo,pavement));
+    const sideGeometry=new THREE.BufferGeometry();
+    sideGeometry.setAttribute('position',new THREE.Float32BufferAttribute(sideVerts,3));
+    sideGeometry.setAttribute('uv',new THREE.Float32BufferAttribute(sideUv,2));
+    sideGeometry.computeVertexNormals();
+    const sidewalk=this.material('#e0bea0');
+    group.add(new THREE.Mesh(sideGeometry,sidewalk));
+    const retaining=this.material('#c9a080');
     const edging=this.material('#ffe0ae');
     for(let s=ROUTE_CURVE.split+1;s<ROUTE_JOIN_DISTANCE-1;s+=3){
       for(const lane of [-1,1]){
@@ -103,6 +124,10 @@ export class RouteForkView {
         curb.position.set(point.x,point.y,point.z);
         curb.rotation.y=point.yaw;
         group.add(curb);
+        const wall=new THREE.Mesh(new THREE.BoxGeometry(.16,1.75,3),retaining);
+        wall.position.set(point.x,point.y-.95,point.z);
+        wall.rotation.y=point.yaw;
+        group.add(wall);
       }
     }
     const portalPoint=routePoint(ROUTE_FORK.portalZ,0,choice,groundHeight(ROUTE_FORK.portalZ));
