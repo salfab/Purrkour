@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {panoramaPan,panoramaSize} from './backdropMath';
+import type {RoutePose} from './routeGeometry';
 
 /**
  * A painted distant panorama rather than a full-screen WebGL background.
@@ -73,10 +74,16 @@ export class ScenicBackdrop {
     );
   }
 
-  update(distance:number,groundHeight:number):void{
+  update(distance:number,groundHeight:number,pose:RoutePose):void{
     if(!this.panorama)return;
-    // 86 metres in front of the cat: behind the streamed rooftop scene.
-    this.panorama.position.set(panoramaPan(distance),groundHeight+1.0,distance+87);
+    const drift=panoramaPan(distance);
+    const distanceAhead=92;
+    this.panorama.position.set(
+      pose.x+distanceAhead*Math.sin(pose.yaw)+drift*Math.cos(pose.yaw),
+      groundHeight+1,
+      pose.z+distanceAhead*Math.cos(pose.yaw)-drift*Math.sin(pose.yaw),
+    );
+    this.panorama.rotation.y=Math.PI+pose.yaw;
   }
 
   dispose():void{

@@ -4,7 +4,8 @@ import { ArtWorld } from './ArtWorld';
 import { ThumbControls } from './ThumbControls';
 import { ScenicBackdrop } from './ScenicBackdrop';
 import {RouteForkView} from './RouteForkView';
-import {turnEnvelope,forkStage} from './routeChoices';
+import {forkStage} from './routeChoices';
+import {routePoint,routePose} from './routeGeometry';
 
 export type UpdateListener = (snapshot: Snapshot) => void;
 
@@ -131,14 +132,15 @@ export class PurrkourGame {
     this.world.update(this.player,this.collected);
     this.fork.update(this.player.routeChoice,this.player.elapsed);
     const radians=this.pitch*Math.PI/180;
-    const y=groundHeight(this.player.z)+WORLD.cameraHeight,z=this.player.z-WORLD.cameraDistance;
-    const turn=turnEnvelope(this.player.elapsed,this.player.routeChosenAt);
-    const sign=this.player.routeChoice==='fish'?1:this.player.routeChoice==='acro'?-1:0;
-    // A small camera arc sells the branch turn while physics keeps following +Z.
-    this.camera.position.set(-sign*.9*turn,y,z);
-    this.camera.lookAt(sign*3.6*turn,y-12*Math.sin(radians),z+12*Math.cos(radians));
-    this.world.setTurnLean(-sign*.11*turn);
-    this.backdrop.update(this.player.z,groundHeight(this.player.z));
+    const y=groundHeight(this.player.z)+WORLD.cameraHeight;
+    // The camera really travels along the selected street; the whole town
+    // rotates in perspective as the cat takes each 90-degree corner.
+    const behind=routePoint(Math.max(0,this.player.z-WORLD.cameraDistance),0,this.player.routeChoice);
+    const ahead=routePoint(this.player.z+12,0,this.player.routeChoice);
+    this.camera.position.set(behind.x,y,behind.z);
+    this.camera.lookAt(ahead.x,y-12*Math.sin(radians),ahead.z);
+    this.world.setTurnLean(0);
+    this.backdrop.update(this.player.z,groundHeight(this.player.z),routePose(this.player.z,this.player.routeChoice));
     this.renderer.render(this.scene,this.camera);
     this.frameId=requestAnimationFrame(this.frame);
   };

@@ -65,7 +65,7 @@ export function isGap(z: number): boolean {
   if (z < 0) return false;
   // The 200–300 m segment contains the first fork. Keep its landing area
   // free of chasms while the camera is turning.
-  if(Math.floor(z/WORLD.segmentLength)===2)return false;
+  if(z>=200&&z<430)return false;
   const local = z % WORLD.segmentLength;
   return local >= WORLD.gapStart && local <= WORLD.gapEnd;
 }

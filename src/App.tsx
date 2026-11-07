@@ -60,7 +60,7 @@ export function App() {
           <small>GLISSE À GAUCHE OU À DROITE</small>
         </>:<>
           <strong>{status.routeChoice==='fish'?'🐟 ROUTE DES POISSONS':'⭐ ROUTE DES ACROBATIES'}</strong>
-          {status.routeStage==='turn'&&<small>VIRAGE EN COURS…</small>}
+          {status.routeStage==='turn'&&<small>VIRAGE À 90°…</small>}{status.routeStage==='rejoin'&&<small>LES ROUTES SE REJOIGNENT</small>}
         </>}
       </div>
     )}
@@ -70,7 +70,7 @@ export function App() {
     </div>}
     {!running&&<section className="overlay">
       <div className="dialog">
-        <div className="eyebrow">PURRKOUR · V0.11 · MOBILE FIRST</div>
+        <div className="eyebrow">PURRKOUR · V0.12 · MOBILE FIRST</div>
         <h1>Purrkour 🐈</h1>
         {error&&<p className="error">Impossible de démarrer le jeu : {error}</p>}
         {!error&&status.mode==='menu'&&<>
@@ -103,7 +103,7 @@ export function App() {
           </div>
           <button type="button" onClick={()=>game.current?.start()}>Rejouer</button>
         </>}
-        <p>Prototype mobile v0.11 · Premier embranchement à deux voies.</p>
+        <p>Prototype mobile v0.12 · Virages 90° et routes réunies.</p>
       </div>
     </section>}
   </main>;

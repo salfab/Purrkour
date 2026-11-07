@@ -3,15 +3,15 @@
  * control, so no new tap, swipe gesture, or pause screen is necessary.
  */
 export type RouteChoice = 'fish' | 'acro';
-export type RouteStage = 'approach' | 'turn' | 'active' | null;
+export type RouteStage = 'approach' | 'turn' | 'active' | 'rejoin' | null;
 
 export const ROUTE_FORK = {
   announceZ: 229,
   chooseZ: 250,
   endZ: 400,
   turnSeconds: .95,
-  portalZ: 249.3,
-  exitZ: 265,
+  portalZ: 262,
+  exitZ: 272,
 } as const;
 
 export function routeFromWorldX(worldX:number):RouteChoice {
@@ -25,8 +25,10 @@ export function activeRoute(distance:number,choice:RouteChoice|null):RouteChoice
 
 export function forkStage(distance:number,choice:RouteChoice|null,elapsed:number,chosenAt:number|null):RouteStage {
   if(distance>=ROUTE_FORK.announceZ && distance<ROUTE_FORK.chooseZ && choice===null)return 'approach';
-  if(choice===null || distance>=ROUTE_FORK.endZ)return null;
-  if(chosenAt!==null && elapsed-chosenAt<ROUTE_FORK.turnSeconds)return 'turn';
+  if(choice===null)return null;
+  if(distance>405&&distance<435)return 'rejoin';
+  if(distance>=435)return null;
+  if(distance<273||(chosenAt!==null && elapsed-chosenAt<ROUTE_FORK.turnSeconds))return 'turn';
   return 'active';
 }
 
