@@ -190,6 +190,10 @@ export class ArtWorld {
     this.peachMaterial=mat(plasterTexture(true));
     this.roofMaterial=mat(roofTexture());
     this.crateMaterial=mat(woodTexture());
+    this.loadPaintedTexture('track_pavers.webp',this.groundMaterial,2.1,.85);
+    this.loadPaintedTexture('terrace_pavers.webp',this.terraceMaterial,3.3,4.2);
+    this.loadPaintedTexture('stucco_cream_v2.webp',this.wallMaterial,2.1,1.5);
+    this.loadPaintedTexture('stucco_peach_v2.webp',this.peachMaterial,2.1,1.5);
     this.edgeMaterial=new THREE.MeshLambertMaterial({color:'#f3d39d'});
     this.materials.push(this.edgeMaterial);
     const sprite=(t:THREE.Texture)=>{const m=new THREE.SpriteMaterial({map:tex(t),transparent:true,alphaTest:.05,depthWrite:false});this.materials.push(m);return m;};
@@ -246,6 +250,27 @@ export class ArtWorld {
     this.catAtlas=atlas;
     this.textures.push(atlas);
     this.drawCat(0);
+  }
+  private loadPaintedTexture(filename:string,material:THREE.MeshLambertMaterial,repeatX:number,repeatY:number):void{
+    const texture=new THREE.TextureLoader().load(
+      `${import.meta.env.BASE_URL}assets/textures/${filename}`,
+      loaded=>{
+        if(!this.materials.includes(material))return;
+        loaded.colorSpace=THREE.SRGBColorSpace;
+        loaded.wrapS=THREE.RepeatWrapping;
+        loaded.wrapT=THREE.RepeatWrapping;
+        loaded.repeat.set(repeatX,repeatY);
+        material.map=loaded;
+        material.needsUpdate=true;
+      },
+      undefined,
+      ()=>console.warn('Purrkour: painted material unavailable:',filename),
+    );
+    texture.colorSpace=THREE.SRGBColorSpace;
+    texture.wrapS=THREE.RepeatWrapping;
+    texture.wrapT=THREE.RepeatWrapping;
+    texture.anisotropy=2;
+    this.textures.push(texture);
   }
   private drawCat(index:number):void{
     if(this.lastFrame===index)return;

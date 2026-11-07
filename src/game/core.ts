@@ -75,36 +75,45 @@ export function cratesNear(start: number, end: number): Crate[] {
   }
   return result.filter(c => c.z >= start - 2 && c.z <= end + 2);
 }
-export function pickupsNear(start: number, end: number): Pickup[] {
-  const result: Pickup[] = [];
-  for (let k = Math.max(0, Math.floor(start / 100) - 1); k <= Math.floor(end / 100) + 1; k++) {
-    const base = k * 100;
-    [-1.6, -.8, 0, .8, 1.6].forEach((x, i) => {
-      const z = base + 8 + i * .65;
-      result.push({ id: 'fish-' + k + '-' + i, kind: 'fish', x, z, y: groundHeight(z) + .38, points: 10, fishes: 1, rangeX: .4, rangeY: .5, rangeZ: .52 });
-    });
-    for (let i = 0; i < 3; i++) {
-      const z = base + 33.6 + i;
-      result.push({ id: 'ramp-' + k + '-' + i, kind: 'fish', x: 1.42, z, y: groundHeight(z) + .45, points: 10, fishes: 1, rangeX: .38, rangeY: .5, rangeZ: .5 });
-    }
-    for (const [name, x, at] of [['a', -1.35, 18], ['b', 1.3, 41], ['c', 0, 88]] as const) {
-      // After 100 m, the high fish sits beyond the maximum normal jump height,
-      // but within the bounce arc from the crate below it.
-      const needsBounce = k >= 1;
-      result.push({
-        id: (needsBounce ? 'sky-' : 'gold-') + name + '-' + k,
-        kind: needsBounce ? 'sky' : 'gold',
-        x,
-        z: base + at + (needsBounce ? 2 : 1.2),
-        y: groundHeight(base + at) + (needsBounce ? 2.95 : 2.4),
-        points: needsBounce ? 180 : 100,
-        fishes: needsBounce ? 5 : 3,
-        rangeX: .58, rangeY: needsBounce ? .46 : .66, rangeZ: .95,
+export function pickupsNear(start:number,end:number):Pickup[]{
+  const result:Pickup[]=[];
+  for(let k=Math.max(0,Math.floor(start/100)-1);k<=Math.floor(end/100)+1;k++){
+    const base=k*100;
+    const add=(id:string,kind:PickupKind,x:number,localZ:number,height:number,points:number,fishes:number,rx=.4,ry=.5,rz=.52):void=>{
+      const z=base+localZ;
+      result.push({id:id+'-'+k,kind,x,z,y:groundHeight(z)+height,points,fishes,rangeX:rx,rangeY:ry,rangeZ:rz});
+    };
+    const fishLine=(label:string,positions:readonly number[],at:number,spacing:number):void=>{
+      positions.forEach((x,i)=>add(label+'-'+i,'fish',x,at+i*spacing,.4,10,1));
+    };
+    // A rhythm cycle: flow -> choice -> boost -> risk -> release.
+    fishLine('opening',[-1.6,-.8,0,.8,1.6],8,.65);
+    add('gold-jump-a','gold',-1.35,19.2,2.30,100,3,.58,.64,.95);
+    fishLine('safe-route-a',[.4,1.05,1.7],20.4,.70);
+    add('speed-boost','boost',.75,28,.68,120,0,.48,.56,.54);
+    fishLine('boost-trail',[.75,.3,-.15,-.60,-1.05],29,.65);
+    fishLine('ramp-fish',[1.42,1.42,.75,.75],33.4,.92);
+    // Higher rewards unlock after 100 meters. Alternating jump and bounce
+    // sequences remain in every subsequent cycle.
+    const highB=k>=1;
+    add(highB?'sky-bounce-b':'gold-jump-b',highB?'sky':'gold',1.3,highB?43.0:42.2,highB?2.95:2.38,highB?180:100,highB?5:3,.58,highB?.46:.66,.98);
+    if(highB){
+      [2.15,1.77,1.38,.96].forEach((height,i)=>{
+        add('bounce-arc-b-'+i,'fish',1.3,44.1+i*.72,height,18,1,.36,.50,.54);
       });
+      fishLine('safe-route-b',[-1.55,-1.05,-.55],42,.7);
     }
-    result.push({ id: 'boost-' + k, kind: 'boost', x: .75, z: base + 28, y: groundHeight(base + 28) + .68, points: 120, fishes: 0, rangeX: .48, rangeY: .56, rangeZ: .54 });
+    fishLine('slalom',[-1.45,-.55,.55,1.45],54.2,.82);
+    const highC=k>=2&&k%2===0;
+    add(highC?'sky-bounce-c':'gold-jump-c',highC?'sky':'gold',0,highC?90.0:89.15,highC?3.02:2.38,highC?180:100,highC?5:3,.58,highC?.46:.66,.98);
+    if(highC){
+      [2.1,1.7,1.3,.9].forEach((height,i)=>{
+        add('bounce-arc-c-'+i,'fish',0,91.1+i*.72,height,18,1,.36,.5,.54);
+      });
+      fishLine('safe-route-c',[-1.5,-1.0,1.0,1.5],89.4,.58);
+    }
   }
-  return result.filter(item => item.z >= start - 2 && item.z <= end + 2);
+  return result.filter(item=>item.z>=start-2&&item.z<=end+2);
 }
 export function makePlayer(): Player {
   return { x: 0, y: 0, z: 0, vy: 0, grounded: true, coyote: .1, elapsed: 0,

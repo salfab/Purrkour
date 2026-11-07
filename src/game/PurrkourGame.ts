@@ -20,6 +20,8 @@ export class PurrkourGame {
   private readonly horizonTexture:THREE.Texture;
   private readonly world=new ArtWorld();
   private readonly controls: ThumbControls;
+  private readonly music:HTMLAudioElement;
+  private muted=false;
   private readonly resizeObserver: ResizeObserver;
   private readonly onUpdate: UpdateListener;
   private readonly collected=new Set<string>();
@@ -42,7 +44,7 @@ export class PurrkourGame {
     this.renderer.outputColorSpace=THREE.SRGBColorSpace;
     this.scene.background=new THREE.Color('#bfe6f5');
     const horizon=new THREE.TextureLoader().load(
-      `${import.meta.env.BASE_URL}assets/backgrounds/rooftop-horizon.svg`,
+      `${import.meta.env.BASE_URL}assets/backgrounds/mediterranean_horizon.webp`,
       texture=>{ texture.colorSpace=THREE.SRGBColorSpace; this.scene.background=texture; },
       undefined,
       ()=>console.warn('Purrkour: horizon image unavailable; using sky color'),
@@ -54,6 +56,12 @@ export class PurrkourGame {
     const sunlight=new THREE.DirectionalLight('#fff3d6',2.4);
     sunlight.position.set(-7,15,-10);this.scene.add(sunlight);
     this.scene.add(this.world.group,this.world.cat);
+    this.music=new Audio(`${import.meta.env.BASE_URL}assets/audio/music.mp3`);
+    this.music.loop=true;
+    this.music.preload='auto';
+    this.music.volume=.35;
+    try{this.muted=localStorage.getItem('purrkour-music-muted')==='true';}catch{this.muted=false;}
+    this.music.muted=this.muted;
     this.controls=new ThumbControls(canvas);
     this.resizeObserver=new ResizeObserver(()=>this.resize(canvas));
     this.resizeObserver.observe(canvas);
@@ -76,15 +84,29 @@ export class PurrkourGame {
     this.player=makePlayer();this.collected.clear();
     this.accumulator=0;this.hudTimer=0;
     this.mode='running';this.controls.setEnabled(true);
+    this.playMusic();
     this.publish();
   }
   pause():void{
     if(this.mode!=='running')return;
-    this.mode='paused';this.controls.setEnabled(false);this.publish();
+    this.mode='paused';this.controls.setEnabled(false);this.music.pause();this.publish();
   }
   resume():void{
     if(this.mode!=='paused')return;
-    this.mode='running';this.controls.setEnabled(true);this.publish();
+    this.mode='running';this.controls.setEnabled(true);this.playMusic();this.publish();
+  }
+  get musicMuted():boolean{return this.muted;}
+  toggleMusic():boolean{
+    this.muted=!this.muted;
+    this.music.muted=this.muted;
+    try{localStorage.setItem('purrkour-music-muted',String(this.muted));}catch{}
+    if(this.muted)this.music.pause();
+    else if(this.mode==='running')this.playMusic();
+    return this.muted;
+  }
+  private playMusic():void{
+    if(this.muted)return;
+    void this.music.play().catch(()=>{/* Playback may require a user gesture. */});
   }
   cycleCamera():number{
     const choices=[14,20,26,32] as const;
@@ -116,7 +138,7 @@ export class PurrkourGame {
   };
   private end():void{
     if(this.mode!=='running')return;
-    this.mode='over';this.controls.setEnabled(false);
+    this.mode='over';this.controls.setEnabled(false);this.music.pause();
     this.best=Math.max(this.best,Math.floor(this.player.z));
     this.bestScore=Math.max(this.bestScore,this.player.score);
     this.bank+=this.player.fish;
@@ -137,6 +159,7 @@ export class PurrkourGame {
     this.disposed=true;cancelAnimationFrame(this.frameId);
     document.removeEventListener('visibilitychange',this.visibility);
     this.resizeObserver.disconnect();this.controls.dispose();
+    this.music.pause();this.music.removeAttribute('src');this.music.load();
     this.world.dispose();this.horizonTexture.dispose();this.renderer.dispose();
   }
 }

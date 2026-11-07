@@ -13,6 +13,7 @@ export function App() {
   const [status,setStatus]=useState<Snapshot>(initial);
   const [error,setError]=useState<string|null>(null);
   const [pitch,setPitch]=useState<number>(WORLD.cameraPitch);
+  const [muted,setMuted]=useState<boolean>(false);
 
   useEffect(()=>{
     const element=canvas.current;
@@ -42,6 +43,7 @@ export function App() {
         </div>
       </div>
       <div className="hud-buttons">
+        <button type="button" className="icon-btn" aria-label={muted?'Activer la musique':'Couper la musique'} onClick={()=>setMuted(game.current?.toggleMusic()??true)}>{muted?'🔇':'🔊'}</button>
         <button type="button" className="icon-btn" aria-label="Changer l'angle de caméra" onClick={()=>setPitch(game.current?.cycleCamera()??pitch)}>📷 {pitch}°</button>
         <button type="button" className="icon-btn" aria-label="Mettre le jeu en pause" disabled={!running} onClick={()=>game.current?.pause()}>Ⅱ</button>
       </div>
@@ -52,15 +54,16 @@ export function App() {
     </div>}
     {!running&&<section className="overlay">
       <div className="dialog">
-        <div className="eyebrow">PURRKOUR · THREE.JS · MOBILE FIRST</div>
+        <div className="eyebrow">PURRKOUR · V0.8 · MOBILE FIRST</div>
         <h1>Purrkour 🐈</h1>
         {error&&<p className="error">Impossible de démarrer le jeu : {error}</p>}
         {!error&&status.mode==='menu'&&<>
-          <p>Un petit chat, des toits à explorer et toujours plus de vitesse !</p>
+          <p>Un petit chat kawaii, des toits colorés et toujours plus de vitesse !</p>
           <ul>
             <li>Glisse ton pouce en bas de l'écran pour guider le chat.</li>
             <li>Relâche pour sauter. Les caisses deviennent des trampolines !</li>
-            <li>Attrape des poissons et des bonus dorés.</li>
+            <li>Attrape des poissons, puis apprends à rebondir pour saisir les bonus les plus hauts.</li>
+            <li>Choisis entre les poissons faciles au sol et les récompenses à risque.</li>
             <li>La vitesse augmente naturellement pendant le run.</li>
           </ul>
           <button type="button" onClick={()=>game.current?.start()}>Commencer le run</button>
@@ -83,7 +86,7 @@ export function App() {
           </div>
           <button type="button" onClick={()=>game.current?.start()}>Rejouer</button>
         </>}
-        <p>Prototype technique jouable · Monde et textures générés dans le navigateur.</p>
+        <p>Prototype mobile v0.8 · Art raster et rythme de jeu enrichi.</p>
       </div>
     </section>}
   </main>;
