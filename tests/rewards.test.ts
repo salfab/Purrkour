@@ -6,7 +6,7 @@ import {
   type RewardActor,type RewardPickup,
 } from '../src/game/rewards';
 import {
-  makePlayer,simulate,WORLD,worldXFromScreenRatio,
+  makePlayer,simulate,worldXFromScreenRatio,
   type Controls,
 } from '../src/game/core';
 import {routeFromWorldX} from '../src/game/routeChoices';

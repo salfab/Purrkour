@@ -2,7 +2,7 @@
 import {segmentPlan,patternHasCrate,safeLaneX} from './gameplayDirector';
 import {ROUTE_FORK,routeFromWorldX,activeRoute,type RouteChoice,type RouteStage} from './routeChoices';
 import {branchSteeringBounds,ROUTE_PREVIEW_END} from './routeGeometry';
-import {createRewardState,comboMultiplier,tickRewards,rewardBounce,rewardLanding,rewardFailure,rewardPickup,rewardPickupInReach,type RewardState,type RewardFeedback} from './rewards';
+import {createRewardState,tickRewards,rewardBounce,rewardLanding,rewardFailure,rewardPickup,rewardPickupInReach,type RewardState,type RewardFeedback} from './rewards';
 export const WORLD = {
   trackWidth: 5,
   segmentLength: 100,

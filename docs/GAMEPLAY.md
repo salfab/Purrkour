@@ -25,9 +25,9 @@
 | Boost | ✅ | Accélération temporaire `+1.7` m/s ; score des poissons doublé pendant l'effet |
 | Score et réserve permanente de poissons | ✅ | Conservation locale à la fin du run, pas de boutique |
 | Cycles de séquences variées | 🟡 | Les séquences sont placées à des positions fixes et répétées tous les 100 m |
-| Combo de compétence | ⬜ | Aucun multiplicateur basé sur une série d'actions réussies |
-| Générateur de patterns / directeur de difficulté | ⬜ | Aucun choix dynamique de pattern ; toutes les caisses et fossés suivent un calendrier fixe |
-| Pouvoirs, niveaux et déblocages globaux | ⬜ | Concept défini, non implémenté |
+| Combo de compétence | ✅ v0.17 | Rebond → doré haut → réception ; multiplicateur de score ×2 à ×4, expirant après 13 s |
+| Générateur de patterns / directeur de difficulté | 🟡 | Séquences choisies par graine depuis v0.10 ; pas encore de directeur adaptatif au temps de réaction |
+| Pouvoirs, niveaux et déblocages globaux | 🟡 | Purr Rush temporaire ajouté en v0.17 ; niveaux de compétences et déblocages globaux non implémentés |
 | Synchronisation musicale | ⬜ | Musique diffusée en boucle, pas de synchronisation du gameplay au tempo |
 
 ### Observation critique
