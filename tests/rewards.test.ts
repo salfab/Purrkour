@@ -6,7 +6,7 @@ import {
   type RewardActor,type RewardPickup,
 } from '../src/game/rewards';
 import {
-  makePlayer,simulate,worldXFromScreenRatio,
+  makePlayer,simulate,groundHeight,worldXFromScreenRatio,
   type Controls,
 } from '../src/game/core';
 import {routeFromWorldX} from '../src/game/routeChoices';
@@ -83,6 +83,26 @@ describe('v0.17 instinct and Purr Rush',()=>{
 });
 
 describe('v0.17 acrobatic combos',()=>{
+  it('works end-to-end with real crate collision, sky fish, and landing',()=>{
+    const player=makePlayer(18);
+    const top=groundHeight(141)+.85;
+    player.elapsed=50;
+    player.x=1.3;
+    player.z=140.94;
+    player.y=top+.025;
+    player.vy=-3;
+    player.grounded=false;
+    const collected=new Set<string>();
+    const input:Controls={targetX:1.3,left:false,right:false,jump:false};
+    for(let frame=0;frame<340 && player.z<155 && !player.failure;frame++){
+      simulate(player,input,collected,1/120);
+    }
+    expect(player.failure).toBeNull();
+    expect(player.bounces).toBeGreaterThanOrEqual(1);
+    expect(collected.has('choice-bounce-grab-gold-1')).toBe(true);
+    expect(player.rewards.comboChain).toBeGreaterThanOrEqual(1);
+    expect(player.rewards.lastBonus).toBeGreaterThanOrEqual(150);
+  });
   it('requires bounce, high gold while airborne, then a real landing',()=>{
     const a=actor();
     rewardPickup(a,sky);
@@ -117,7 +137,9 @@ describe('v0.17 acrobatic combos',()=>{
     expect(comboMultiplier(a.rewards)).toBe(4);
     const beforeScore=a.score,beforeFish=a.fish;
     rewardPickup(a,blue);
-    expect(a.score-beforeScore).toBe(40);
+    // Five sky fish also filled the Rush gauge; ×4 combo and ×2 Rush stack.
+    expect(a.rewards.rushRemaining).toBeGreaterThan(0);
+    expect(a.score-beforeScore).toBe(80);
     expect(a.fish-beforeFish).toBe(1);
   });
   it('expires an unfinished bounce and the score chain without losing the fish bank',()=>{
