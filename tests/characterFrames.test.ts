@@ -51,7 +51,7 @@ describe('safe character sprite sampling (front, back, mirror)',()=>{
     pixel(5,2,[220,10,10,255]);    // red collar outside cleanup area
     const changed=cleanRearFootArtifacts({width:10,height:10,data});
     expect(changed).toBe(2);
-    for(const [x,y,a] of [[1,9,0],[2,9,0],[3,9,255],[4,9,255],[5,2,255]]){
+    for(const [x,y,a] of ([[1,9,0],[2,9,0],[3,9,255],[4,9,255],[5,2,255]] as const)){
       expect(data[(y*10+x)*4+3]).toBe(a);
     }
   });

@@ -236,10 +236,8 @@ export class ArtWorld {
   private readonly pickupMaterials:Record<Pickup['kind'],THREE.SpriteMaterial>;
   private readonly propMaterials:{window:THREE.SpriteMaterial;flower:THREE.SpriteMaterial;banner:THREE.SpriteMaterial};
   private readonly wallPropMaterials:{window:THREE.MeshBasicMaterial;banner:THREE.MeshBasicMaterial};
-  private readonly catAtlas:THREE.Texture;
   private catAtlasReady=false;
   private catFrames:THREE.CanvasTexture[]=[];
-  private readonly rearAtlas:THREE.Texture;
   private rearAtlasReady=false;
   private rearFrames:THREE.CanvasTexture[]=[];
   private readonly catCanvas:HTMLCanvasElement;
@@ -331,7 +329,6 @@ export class ArtWorld {
     atlas.wrapT=THREE.ClampToEdgeWrapping;
     atlas.magFilter=THREE.LinearFilter;
     atlas.minFilter=THREE.LinearFilter;
-    this.catAtlas=atlas;
     this.textures.push(atlas);
 
     // Transparent, illustrated rear-running animation (4-frame atlas).
@@ -359,7 +356,6 @@ export class ArtWorld {
     rearAtlas.generateMipmaps=false;
     rearAtlas.magFilter=THREE.LinearFilter;
     rearAtlas.minFilter=THREE.LinearFilter;
-    this.rearAtlas=rearAtlas;
     this.textures.push(rearAtlas);
     this.drawCat(0,true);
   }
