@@ -29,7 +29,19 @@ try{
       });
       const page=await context.newPage();
       const issues=[];
-      page.on('pageerror',error=>issues.push(String(error)));
+      page.on('pageerror',error=>{
+        const message=String(error);
+        issues.push(message);
+        console.error('[pageerror]',message);
+      });
+      page.on('console',message=>{
+        if(message.type()==='error'||message.type()==='warning'){
+          console.error('[browser '+message.type()+']',message.text());
+        }
+      });
+      page.on('requestfailed',request=>{
+        console.error('[requestfailed]',request.url(),request.failure());
+      });
       const query=new URLSearchParams({
         districtPreview:'1',
         housePreview:style,
@@ -37,10 +49,24 @@ try{
       });
       const url='http://127.0.0.1:4173/Purrkour/?'+query.toString();
       await page.goto(url,{waitUntil:'networkidle',timeout:45000});
-      await page.waitForFunction(
-        ()=>document.documentElement.dataset.houseArtReady==='true',
-        {timeout:30000},
-      );
+      try{
+        await page.waitForFunction(
+          ()=>document.documentElement.dataset.houseArtReady==='true',
+          null,
+          {timeout:10000},
+        );
+      }catch(error){
+        const html=await page.evaluate(()=>({
+          title:document.title,url:location.href,
+          art:document.documentElement.dataset.houseArtReady,
+          game:document.querySelector('.game')?.outerHTML.slice(0,400),
+          text:document.body.textContent?.slice(0,450),
+        }));
+        const diagnostic=`debug-${item.district}-${style}.png`;
+        await page.screenshot({path:directory+'/'+diagnostic});
+        console.error('Art screenshot initialization failed',html,issues);
+        throw error;
+      }
       await page.waitForTimeout(1250);
       const scene=await page.evaluate(()=>{
         const canvas=document.querySelector('canvas');
