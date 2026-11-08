@@ -467,3 +467,20 @@ Un second ensemble de **cinq textures PNG 512×512** a été ajouté dans `publi
 **Pour l'essayer :** ouvrir `?facadePreview=stucco`, et éventuellement `?districtPreview=1&facadePreview=stucco` pour changer de quartier tous les 100 m. Cette variante remplace seulement les maps de crépi et de toiture : les fenêtres, portes, volumes des bâtiments, collisions, poissons et autres systèmes de gameplay ne changent pas. La version normale conserve les atlas illustrés de la **v0.18.4**, ce qui permet de comparer à partir des mêmes conditions et de revenir en arrière instantanément.
 
 Les textures alternatives sont chargées avec `RepeatWrapping` et des mipmaps. Elles n'utilisent ni transparence détourée ni compression AVIF/WebP destructrice. Si la nouvelle version reste trop artificielle, l'alternative de façades entièrement dessinées sur sprites avec éléments interactifs 3D pourra être évaluée sur captures mobiles.
+
+
+### v0.18.6 — Comparaison de façades entières en sprites 2.5D
+
+**Pourquoi cette passe :** les captures du jeu montraient que les nouvelles textures de crépi ne corrigeaient ni l'effet « maison cube » ni les fenêtres trop petites. Ce prototype remplace les bâtiments **en géométrie** par un plan 2.5D unique portant une illustration complète et transparente (toiture, fenêtres, portes, crépi, décoration), situé plus près de la route. Ce n'est PAS une capture ImageGen plaquée sur tout le jeu : la piste, les poissons, la caméra, les caisses et les collisions demeurent rendus et simulés normalement.
+
+Les illustrations sont **composées une fois au chargement dans Canvas 2D**, à partir des **trois atlas PNG peints déjà inclus** dans le dépôt (`facades_painted_v1.png`, `openings_painted_v1.png` et `roofs_painted_v1.png`). Chaque quartier possède sa façade complète, enregistrée en texture GPU partagée 512×768 avec fond transparent. Le marché a un auvent continu, les jardins un balcon fleuri peint, le crépuscule des lanternes ; aucun n'est présenté comme élément grimpable tant que Griffe n'existe pas. Ce prototype évite les découpes de screenshots non propres (ciel, morceaux de piste ou poissons laissés dans l'image).
+
+**Comparer sans perturber le jeu :**
+
+- Mode actuel : `https://salfab.github.io/Purrkour/?districtPreview=1`
+- Toutes les maisons en sprites : `https://salfab.github.io/Purrkour/?districtPreview=1&housePreview=sprites`
+- Comparaison dans la même rue (une parcelle sur deux) : `?districtPreview=1&housePreview=compare`
+
+Pour un rendu reproductible et une capture du **vrai moteur Three.js**, l'option `artShot=50` (puis 150, 250, 350) gèle la simulation à une distance et une graine prédéfinies sans déclencher de récompenses. Le pipeline `.github/workflows/capture-art.yml` construit l'application, la charge dans Chromium avec WebGL logiciel, puis dépose les captures dans un artifact GitHub Actions (8 images : 4 quartiers × 2 modes).
+
+**Contraintes :** chaque bâtiment reste un objet Three.js placé et tourné avec la route. Le sprite ne fait pas partie des hitboxes ; les futures corniches/prises Griffe devront être des meshes de collision 3D séparés, signalés comme interactifs. Les matériaux peints de la v0.18.5 restent disponibles via `facadePreview=stucco`, et les maisons 3D actuelles sont le mode par défaut. Le rendu final de la v0.18.6 doit être **validé sur de vraies captures**, pas déduit d'un concept généré. La production de sprites de maisons entièrement peints individuellement reste une étape éventuelle après la comparaison.

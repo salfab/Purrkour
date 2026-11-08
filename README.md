@@ -194,3 +194,8 @@ Mode de test rapide : [quartiers tous les 100 mètres](https://salfab.github.io/
 ## v0.18.5 — Comparaison d'une autre texture peinte
 
 Le rendu standard v0.18.4 (atlas de façades, fenêtres, portes, toits) est conservé. Pour comparer une variante basée sur cinq PNG peints haute qualité sans changer la jouabilité, ouvrir [l'essai de crépis peint](https://salfab.github.io/Purrkour/?facadePreview=stucco). Les quatre quartiers défilent tous les 100 m avec [le mode de validation rapide](https://salfab.github.io/Purrkour/?districtPreview=1&facadePreview=stucco). Le code charge ces matériaux à la demande uniquement dans le mode expérimental.
+
+
+## v0.18.6 — Test A/B de maisons illustrées en 2.5D
+
+La v0.18.6 propose une version optionnelle avec **maisons complètes sur plans transparents**, composées à partir des atlas peints existants. Comparez [l'apparence en sprites](https://salfab.github.io/Purrkour/?districtPreview=1&housePreview=sprites) avec [l'architecture actuelle](https://salfab.github.io/Purrkour/?districtPreview=1), ou [les deux dans une même rue](https://salfab.github.io/Purrkour/?districtPreview=1&housePreview=compare). Le changement reste cosmétique et n'ajoute pas encore de mécanique Griffe. Un workflow Chromium capture de vrais screenshots WebGL en quatre quartiers depuis des positions fixes.
