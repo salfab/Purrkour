@@ -3,7 +3,17 @@
  * During art prototyping each district lasts 325 m; production can use 500
  * or 1000 by changing ONLY this constant. No new collision or physics rules.
  */
-export const DISTRICT_LENGTH_METRES=325;
+/**
+ * Experimental art-preview mode only: use ?districtPreview=1 to see all four
+ * neighborhoods every 100m without changing the normal 325m progression.
+ * No gameplay rules or obstacles are modified by this setting.
+ */
+export function districtLengthForPreview(query:string):number{
+  return new URLSearchParams(query).get('districtPreview')==='1'?100:325;
+}
+export const DISTRICT_LENGTH_METRES=districtLengthForPreview(
+  typeof window!=='undefined'?window.location.search:'',
+);
 export const DISTRICT_BLEND_METRES=55;
 export type DistrictKey='old-town'|'market'|'gardens'|'twilight';
 export interface DistrictTheme {
@@ -146,7 +156,7 @@ export function houseProfile(
   const height=compact?4.45+(n%3)*.38:5.55+(n%4)*.9;
   const depth=compact?6.9+(n%3)*.2:7.6+(n%4)*.72;
   // The decoration is outside the road even on the narrowest frontage.
-  const centerX=side*(compact?6.75:6.85+(n%3)*.23);
+  const centerX=side*(compact?6.40:6.50+(n%3)*.23);
   return {
     district:visual.theme,side,z:distance,centerX,
     width,height,depth,variation,archetype,compact,
