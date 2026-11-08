@@ -24,6 +24,15 @@ describe('v0.18.3 real painted raster assets',()=>{
     expect(()=>atlasCells(255,256,2,2)).toThrow();
   });
 
+  it('checks real transparent painted door and window atlas, rather than SVG decals',()=>{
+    const png=readFileSync('public/assets/textures/openings_painted_v1.png');
+    expect([...png.subarray(0,8)]).toEqual([137,80,78,71,13,10,26,10]);
+    expect(png.readUInt32BE(16)).toBe(256);
+    expect(png.readUInt32BE(20)).toBe(256);
+    expect(png[25]).toBe(6); // truecolor RGBA with alpha
+    expect(atlasCells(256,256,2,2).length).toBe(4);
+  });
+
   it('checks that the two roof textures are real raster artwork',()=>{
     const png=readFileSync('public/assets/textures/roofs_painted_v1.png');
     expect([...png.subarray(0,8)]).toEqual([137,80,78,71,13,10,26,10]);
