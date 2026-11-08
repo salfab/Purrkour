@@ -16,7 +16,9 @@ export type PatternId=
   | 'boost-trail'
   | 'slalom'
   | 'weave'
-  | 'recovery-strip';
+  | 'recovery-strip'
+  | 'pigeon-crossing'
+  | 'rolling-cart';
 
 export type SlotId='intro'|'choice'|'pressure'|'reward';
 export interface PatternPlacement{
@@ -73,12 +75,22 @@ export function segmentPlan(segment:number,runSeed=0,route:RouteChoice|null=null
     ids=['fish-lane','boost-trail','slalom','recovery-strip'];
   } else if(k===3 && route==='acro'){
     ids=['jump-grab','bounce-grab','weave','bounce-grab'];
+  } else if(k===4){
+    // First bird crossing after the join, with a safe lane.
+    ids=['fish-lane','pigeon-crossing','slalom','recovery-strip'];
+  } else if(k===5){
+    // Teach a moving bounce after the pigeons.
+    ids=['jump-grab','rolling-cart','weave','recovery-strip'];
   } else{
     const intro:readonly PatternId[]=tier>=2
       ? ['fish-lane','jump-grab','safe-or-skill','jump-grab']
       : ['fish-lane','jump-grab','safe-or-skill'];
-    const middle:readonly PatternId[]=['bounce-grab','boost-trail','safe-or-skill','jump-grab'];
-    const pressure:readonly PatternId[]=tier>=3?['slalom','weave','slalom','weave']:['slalom','slalom','weave'];
+    const middle:readonly PatternId[]=tier>=3
+      ? ['bounce-grab','boost-trail','safe-or-skill','jump-grab','rolling-cart','pigeon-crossing']
+      : ['bounce-grab','boost-trail','safe-or-skill','jump-grab'];
+    const pressure:readonly PatternId[]=tier>=3
+      ? ['slalom','weave','pigeon-crossing','slalom','weave']
+      : ['slalom','slalom','weave'];
     const recover:readonly PatternId[]=tier>=3
       ? ['recovery-strip','fish-lane','jump-grab','recovery-strip']
       : ['recovery-strip','fish-lane','recovery-strip'];

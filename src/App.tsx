@@ -7,7 +7,7 @@ const initial: Snapshot = {
   speed:WORLD.speedStart,boost:0,bounces:0,best:0,bestScore:0,failure:null,
   routeChoice:null,routeStage:null,
   instinct:0,rush:0,rushCount:0,comboMultiplier:1,comboChain:0,
-  rewardFeedback:'none',lastComboBonus:0,
+  rewardFeedback:'none',lastComboBonus:0,stumble:0,cartBounces:0,
 };
 
 export function App() {
@@ -41,8 +41,12 @@ export function App() {
       <div className="hud-stats">
         <div className="chip"><small>DISTANCE</small><strong>{status.distance} m</strong><span> ↑ {status.altitude.toFixed(1)} m</span></div>
         <div className="chip"><small>SCORE</small><strong>{status.score}</strong><span> 🐟 {status.fish}</span></div>
-        <div className={status.boost>0?'chip chip--boost':'chip'}>
-          {status.boost>0?('⚡ BOOST '+status.boost.toFixed(1)+' s'):('VITESSE '+status.speed.toFixed(1)+' m/s ↗')}
+        <div className={status.stumble>0||status.boost>0?'chip chip--boost':'chip'}>
+          {status.stumble>0
+            ?'🐾 OUPS ! RALENTI '+status.stumble.toFixed(1)+' s'
+            :status.boost>0
+              ?'⚡ BOOST '+status.boost.toFixed(1)+' s'
+              :'VITESSE '+status.speed.toFixed(1)+' m/s ↗'}
         </div>
       </div>
       <div className="hud-buttons">
@@ -98,7 +102,7 @@ export function App() {
     </div>}
     {!running&&<section className="overlay">
       <div className="dialog">
-        <div className="eyebrow">PURRKOUR · V0.17.7 · MOBILE FIRST</div>
+        <div className="eyebrow">PURRKOUR · V0.18 · MOBILE FIRST</div>
         <h1>Purrkour 🐈</h1>
         {error&&<p className="error">Impossible de démarrer le jeu : {error}</p>}
         {!error&&status.mode==='menu'&&<>
@@ -108,6 +112,7 @@ export function App() {
             <li>Relâche pour sauter. Les caisses deviennent des trampolines !</li>
             <li>Les poissons remplissent l'Instinct : à 100, Purr Rush attire les poissons bleus !</li>
             <li>Rebond + poisson doré haut + réception réussie = combo PURRFECT.</li>
+            <li>Après 400 m : pigeons qui traversent et chariots de fruits roulants !</li>
             <li>Attrape des poissons, puis apprends à rebondir pour saisir les bonus les plus hauts.</li>
             <li>Choisis entre les poissons faciles au sol et les récompenses à risque.</li>
             <li>Vers 250 m, choisis ta route en te plaçant à gauche ou à droite.</li>
@@ -129,13 +134,14 @@ export function App() {
             <div><span>Poissons gagnés</span><b>+{status.fish} 🐟</b></div>
             <div><span>Réserve totale</span><b>{status.bank} 🐟</b></div>
             <div><span>Rebonds</span><b>{status.bounces}</b></div>
+            <div><span>Rebonds sur chariot</span><b>{status.cartBounces}</b></div>
             <div><span>Purr Rush</span><b>{status.rushCount}</b></div>
             <div><span>Combo</span><b>×{status.comboMultiplier}</b></div>
             <div><span>Record</span><b>{status.best} m</b></div>
           </div>
           <button type="button" onClick={()=>game.current?.start()}>Rejouer</button>
         </>}
-        <p>Prototype mobile v0.17.7 · Sprites originaux restaurés en haute qualité.</p>
+        <p>Prototype mobile v0.18 · Pigeons, chariots et nouveaux enchaînements.</p>
       </div>
     </section>}
   </main>;

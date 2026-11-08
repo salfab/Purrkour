@@ -191,6 +191,8 @@ export class PurrkourGame {
       comboChain:this.player.rewards.comboChain,
       rewardFeedback:this.player.rewards.feedback,
       lastComboBonus:this.player.rewards.lastBonus,
+      stumble:this.player.stumbleRemaining,
+      cartBounces:this.player.cartBounces,
     });
   }
   dispose():void{

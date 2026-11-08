@@ -3,6 +3,7 @@ import {segmentPlan,patternHasCrate,safeLaneX} from './gameplayDirector';
 import {ROUTE_FORK,routeFromWorldX,activeRoute,type RouteChoice,type RouteStage} from './routeChoices';
 import {branchSteeringBounds,ROUTE_PREVIEW_END} from './routeGeometry';
 import {createRewardState,tickRewards,rewardBounce,rewardLanding,rewardFailure,rewardPickup,rewardPickupInReach,type RewardState,type RewardFeedback} from './rewards';
+import {movingObstaclesNear,movingObstacleOverlaps,cartBouncePossible,MOVING_RULES} from './movingObstacles';
 export const WORLD = {
   trackWidth: 5,
   segmentLength: 100,
@@ -43,6 +44,8 @@ export interface Player {
   fish: number; bounces: number; failure: Failure; runSeed:number;
   routeChoice:RouteChoice|null; routeChosenAt:number|null;
   rewards:RewardState;
+  stumbleRemaining:number;cartBounces:number;
+  readonly hitMovingObstacles:Set<string>;
 }
 export interface Controls {
   targetX: number | null; left: boolean; right: boolean; jump: boolean;
@@ -59,6 +62,7 @@ export interface Snapshot {
   bestScore: number; failure: Failure; routeChoice:RouteChoice|null; routeStage:RouteStage;
   instinct:number; rush:number; rushCount:number; comboMultiplier:number;
   comboChain:number; rewardFeedback:RewardFeedback; lastComboBonus:number;
+  stumble:number;cartBounces:number;
 }
 export function groundHeight(z: number): number {
   const cycle = Math.max(0, Math.floor(Math.max(0, z) / WORLD.rampPeriod));
@@ -122,6 +126,12 @@ export function pickupsNear(start:number,end:number,runSeed=0,route:RouteChoice|
         const sx=safeLaneX(x);
         fishLine(prefix+'-safe',[sx,sx,sx],at-2.5,1,.42);
         fishLine(prefix+'-exit',[-.65,0,.65],at+3,.82,.42);
+      }else if(id==='pigeon-crossing'){
+        fishLine(prefix+'-dodge',[-1.6,-1.6,-1.6],at+1.5,.8,.42);
+      }else if(id==='rolling-cart'){
+        add(prefix+'-gold','sky',x,at+2.1,3.05,180,5,.62,.52,.98);
+        const safe=safeLaneX(x);
+        fishLine(prefix+'-safe',[safe,safe,safe],at-1.8,.9,.42);
       }else{
         const bounce=id==='bounce-grab';
         const premium=bounce?180:100;
@@ -154,14 +164,18 @@ export function pickupsNear(start:number,end:number,runSeed=0,route:RouteChoice|
 export function makePlayer(runSeed=0): Player {
   return { x: 0, y: 0, z: 0, vy: 0, grounded: true, coyote: .1, elapsed: 0,
     speed: WORLD.speedStart, boost: 0, anim: 0, score: 0, fish: 0, bounces: 0, failure: null,runSeed,
-    routeChoice:null,routeChosenAt:null,rewards:createRewardState() };
+    routeChoice:null,routeChosenAt:null,rewards:createRewardState(),
+    stumbleRemaining:0,cartBounces:0,hitMovingObstacles:new Set<string>() };
 }
 export function simulate(player: Player, controls: Controls, collected: Set<string>, dt: number): void {
   if (player.failure) return;
   player.elapsed += dt;
   tickRewards(player,dt);
+  player.stumbleRemaining=Math.max(0,player.stumbleRemaining-dt);
   player.boost = Math.max(0, player.boost - dt);
-  player.speed = Math.min(WORLD.speedMax, WORLD.speedStart + WORLD.acceleration * player.elapsed) + (player.boost > 0 ? WORLD.boostSpeed : 0);
+  const normalSpeed=Math.min(WORLD.speedMax,WORLD.speedStart+WORLD.acceleration*player.elapsed)
+    +(player.boost>0?WORLD.boostSpeed:0);
+  player.speed=normalSpeed*(player.stumbleRemaining>0?MOVING_RULES.slowdownMultiplier:1);
   player.anim += dt * (5.5 + 1.15 * player.speed);
   player.coyote = player.grounded ? .11 : Math.max(0, player.coyote - dt);
   if (controls.jump && (player.grounded || player.coyote > 0)) {
@@ -212,6 +226,24 @@ export function simulate(player: Player, controls: Controls, collected: Set<stri
       }
     }
   }
+  // Landing on a cart is an intentional skill bounce, not a collision.
+  const moving=movingObstaclesNear(priorZ-2,player.z+2,player.runSeed,route);
+  if(!bounced&&!player.grounded&&player.vy<=0){
+    for(const obstacle of moving){
+      if(obstacle.kind!=='cart'||!movingObstacleOverlaps(obstacle,player.x,player.z))continue;
+      if(cartBouncePossible(obstacle,priorY,player.y,player.vy,groundHeight(obstacle.z))){
+        player.y=groundHeight(obstacle.z)+obstacle.height;
+        player.vy=WORLD.bounceVelocity;
+        player.coyote=0;
+        player.bounces++;
+        player.cartBounces++;
+        player.score+=45;
+        rewardBounce(player);
+        bounced=true;
+        break;
+      }
+    }
+  }
   if (!bounced) {
     let landed=false;
     const floor = groundHeight(player.z);
@@ -236,6 +268,15 @@ export function simulate(player: Player, controls: Controls, collected: Set<stri
     if(landed&&!player.failure)rewardLanding(player);
   }
   if (player.failure){rewardFailure(player);return;}
+  for(const obstacle of moving){
+    if(player.hitMovingObstacles.has(obstacle.id)
+      ||!movingObstacleOverlaps(obstacle,player.x,player.z))continue;
+    if(player.y>=groundHeight(obstacle.z)+obstacle.height-.15)continue;
+    player.hitMovingObstacles.add(obstacle.id);
+    player.stumbleRemaining=MOVING_RULES.penaltySeconds;
+    player.score=Math.max(0,player.score-MOVING_RULES.penaltyPoints);
+    rewardFailure(player); // Lose combo, not fish or Instinct.
+  }
   for (const item of pickupsNear(player.z - 1.2, player.z + 1.6, player.runSeed,route)) {
     if (collected.has(item.id)) continue;
     if(rewardPickupInReach(player,item,player.x,player.y,player.z)){

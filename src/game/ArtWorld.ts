@@ -7,6 +7,8 @@ import {catViewFromLocalX,mirrorProfileForView} from './catView';
 import {isolateCharacterFrames,setCharacterMirror,configureCharacterTexture} from './characterFrames';
 import {catRearPose,rearDisplayFrame} from './catMotion';
 import {terraceQuadUV,trackQuadUV,jumpShadowAppearance,profileFrame} from './visualPolish';
+import {movingObstaclesNear,type MovingObstacle} from './movingObstacles';
+import {MovingObstacleArt} from './MovingObstacleArt';
 
 function canvasTexture(size: number, paint: (ctx: CanvasRenderingContext2D, size: number) => void): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -227,6 +229,8 @@ export class ArtWorld {
   private readonly materials: THREE.Material[]=[];
   private readonly chunks=new Map<number,THREE.Group>();
   private readonly pickups=new Map<string,{sprite:THREE.Sprite,item:Pickup}>();
+  private readonly movingArt=new MovingObstacleArt();
+  private readonly movingViews=new Map<string,{object:THREE.Group;obstacle:MovingObstacle}>();
   private readonly groundMaterial:THREE.MeshLambertMaterial;
   private readonly terraceMaterial:THREE.MeshLambertMaterial;
   private readonly edgeMaterial:THREE.MeshLambertMaterial;
@@ -549,6 +553,15 @@ export class ArtWorld {
       sprite.position.set(p.x,p.y,p.z);
       group.add(sprite);this.pickups.set(p.id,{sprite,item:p});
     }
+    for(const obstacle of movingObstaclesNear(
+      visualStart,visualEnd,runSeed,activeRoute(visualStart+1,route)
+    )){
+      if(obstacle.z<visualStart||obstacle.z>=visualEnd)continue;
+      const object=this.movingArt.create(obstacle);
+      object.position.set(obstacle.x,groundHeight(obstacle.z),obstacle.z);
+      group.add(object);
+      this.movingViews.set(obstacle.id,{object,obstacle});
+    }
     if(index%3===0&&from+5>=visualStart&&from+5<visualEnd){
       const left=index%2===0;const sign=left?-1:1;const z=from+5;
       // The incoming decorative road must never run through a building.
@@ -594,6 +607,7 @@ export class ArtWorld {
     }
     this.chunks.clear();
     this.pickups.clear();
+    this.movingViews.clear();
     this.activeRunSeed=seed;
     this.activeRoute=null;
     this.wasGrounded=true;
@@ -614,6 +628,9 @@ export class ArtWorld {
       });
       this.group.remove(chunk);
       this.chunks.delete(index);
+      for(const [id,v] of this.movingViews){
+        if(v.object.parent===chunk)this.movingViews.delete(id);
+      }
     }
   }
 
@@ -639,10 +656,16 @@ export class ArtWorld {
         }
       });
       this.group.remove(chunk);this.chunks.delete(i);
+      for(const [id,v] of this.movingViews){
+        if(v.object.parent===chunk)this.movingViews.delete(id);
+      }
     }
     for(const {sprite,item} of this.pickups.values()){
       sprite.visible=!collected.has(item.id);
       sprite.position.y=item.y+Math.sin(player.elapsed*4+item.z*.3)*.065;
+    }
+    for(const {object,obstacle} of this.movingViews.values()){
+      this.movingArt.update(object,obstacle,player.z,player.elapsed,player.routeChoice);
     }
     const position=routePoint(player.z,player.x,player.routeChoice);
     this.cat.position.set(position.x,player.y,position.z);
@@ -677,6 +700,7 @@ export class ArtWorld {
   dispose():void{
     this.resetRun(0);
     this.shadow.geometry.dispose();
+    this.movingArt.dispose();
     this.materials.forEach(m=>m.dispose());
     this.textures.forEach(t=>t.dispose());
   }

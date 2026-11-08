@@ -351,3 +351,15 @@ Les deux PNG originaux de **1024×512 pixels**, **RGBA véritable**, sont désor
 - Tests automatisés des deux PNGs, de leurs dimensions et de leur format RGBA, de la bonne sélection des huit poses, des miroirs, de la transparence et des changements d'état de la course et du saut. Les poissons, textures du sol et contrôles ne sont pas modifiés.
 
 **v0.18 reste la prochaine étape**, pour les pigeons et chariots mobiles. Priorité d'abord à la validation visuelle de cette restauration sur téléphone.
+
+
+## 18. Objets mobiles et difficulté par étapes (v0.18, première version)
+
+- **Pigeons à partir de 441 m :** trois pigeons kawaii traversent latéralement le toit et battent des ailes. Ils se déplacent en fonction de la distance parcourue par le joueur, pas du temps réel, afin que les collisions et les images restent synchronisées à n'importe quel FPS. Le passage est anticipé par un symbole d'alerte. Une voie latérale reste libre, et le saut peut aussi les éviter.
+- **Chariots à partir de 541 m :** un petit chariot de fruits se déplace lentement de gauche à droite. Le joueur peut l'éviter ou rebondir sur son dessus pour prendre un poisson doré haut (+45 points au rebond, combo d'adresse possible). Une voie de poissons bleus reste accessible sans rebond.
+- **Pénalité douce :** un contact frontal coûte 30 points, interrompt le combo et ralentit le chat de 28 % pendant 1,25 seconde. Il ne provoque ni mort ni perte des poissons ou de l'Instinct. Chaque obstacle ne peut infliger qu'une seule pénalité par run.
+- **Progression :** 0–400 m : mécanique précédente préservée ; 400–500 m : pigeons ; 500–600 m : chariot ; 600 m et plus : les nouveaux obstacles entrent dans le catalogue du directeur, avec parfois deux pressions par segment de 100 m. Chaque pattern conserve au moins une voie libre.
+- **Architecture :** `movingObstacles.ts` contient la logique pure et déterministe, `MovingObstacleArt.ts` les représentations 2.5D de faible coût avec textures Canvas, et `ArtWorld` tient leurs visuels synchronisés avec la simulation. Les textures Canvas des pigeons et les chariots 3D simples sont une première version artistique qui pourra être remplacée plus tard.
+- **Tests :** premiers obstacles garantis, variété déterministe, voie libre, collision unique, saut évitant les oiseaux, rebond de chariot, conservation du combo en cas d'évitement et perte en cas de choc, préservation des contraintes de l'embranchement. La jouabilité sur téléphone reste à valider.
+
+Les tissus et bourrasques ainsi qu'un véritable directeur de vagues de tension seront évalués après cette première version, afin de ne pas multiplier les nouveautés sans mesure.

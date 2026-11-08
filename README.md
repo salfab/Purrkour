@@ -160,3 +160,8 @@ Le boost de profil utilise l'image dessinée originale avec ses traits jaunes, s
 ## v0.17.7 — PNG originaux kawaii restaurés
 
 Les personnages utilisent désormais les deux grandes sources originales **1024×512 RGBA** dans `public/assets/character/`. Les atlas de profil et de dos contiennent chacun huit poses en **4×2** et conservent leur **boost illustré d'origine**, sans dessin ajouté sur les sprites ni suppression de couleurs au niveau des pattes. Voir [GAMEPLAY.md](docs/GAMEPLAY.md) pour le mapping des poses et les tests. La v0.18 ajoutera les obstacles mobiles.
+
+
+## Purrkour v0.18 — Obstacles mobiles
+
+Après 400 m, un groupe de pigeons traverse la piste. Après 500 m, un chariot de fruits roulant peut être évité ou utilisé comme trampoline pour attraper un poisson doré haut. Les collisions sont non mortelles : le chat perd son combo, 30 points et ralentit brièvement. Les patterns sont introduits séparément puis mélangés progressivement après 600 m. Les commandes et sprites restaurés du chat sont inchangés.
