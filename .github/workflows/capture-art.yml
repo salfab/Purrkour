@@ -1,16 +1,7 @@
 name: Capture real Three.js art screenshots
 
+# Optional manual diagnostic only. Normal releases do not install Chromium.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'src/game/IllustratedHouseArt.ts'
-      - 'src/game/ArtWorld.ts'
-      - 'src/game/PurrkourGame.ts'
-      - 'src/App.tsx'
-      - 'package.json'
-      - 'scripts/capture-art.mjs'
-      - '.github/workflows/capture-art.yml'
   workflow_dispatch:
 
 permissions:
