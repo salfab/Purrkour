@@ -28,6 +28,8 @@ export interface DistrictMaterialSources{
 export class DistrictBuildings{
   private readonly materials:THREE.Material[]=[];
   private readonly textures:THREE.Texture[]=[];
+  private readonly openingMaterials:THREE.MeshBasicMaterial[]=[];
+  private readonly decalGeometry=new THREE.PlaneGeometry(1,1);
   private paintedFacadesReady=false;
   private paintedRoofsReady=false;
   private disposed=false;
@@ -51,6 +53,16 @@ export class DistrictBuildings{
 
   constructor(private readonly sources:DistrictMaterialSources){
     this.materials.push(this.glow,this.awningMaterial);
+    for(let index=0;index<4;index++){
+      const material=new THREE.MeshBasicMaterial({
+        map:sources.window.map,
+        transparent:true,alphaTest:.055,depthWrite:false,
+        side:THREE.DoubleSide,polygonOffset:true,
+        polygonOffsetFactor:-2,toneMapped:false,
+      });
+      this.openingMaterials.push(material);
+      this.materials.push(material);
+    }
     const lambert=(color:string,map?:THREE.Texture|null):THREE.MeshLambertMaterial=>{
       const m=new THREE.MeshLambertMaterial({
         color,map:map??null,side:THREE.DoubleSide,
@@ -193,6 +205,16 @@ export class DistrictBuildings{
         }
       }
     });
+    load('openings_painted_v1.png',2,2,tiles=>{
+      // Two illustrated windows (flowers or shutters), plus two painted
+      // doors. Correct alpha is already baked into the uploaded PNG.
+      // Shared materials update every already-built facade immediately.
+      for(let i=0;i<this.openingMaterials.length;i++){
+        const material=this.openingMaterials[i]!;
+        material.map=tiles[i]!;
+        material.needsUpdate=true;
+      }
+    });
     load('roofs_painted_v1.png',2,1,tiles=>{
       this.paintedRoofsReady=true;
       for(const [key,material] of this.roofs){
@@ -277,30 +299,25 @@ export class DistrictBuildings{
     group:THREE.Group,p:HouseProfile,inner:number,
     y:number,z:number,width=1.0,height=1.40,
   ):void{
-    const plane=new THREE.Mesh(new THREE.PlaneGeometry(width,height),this.sources.window);
-    plane.position.set(inner-p.side*.055,y,z);
+    const index=p.district.key==='gardens'?0:p.variation%2;
+    const plane=new THREE.Mesh(this.decalGeometry,this.openingMaterials[index]!);
+    plane.position.set(inner-p.side*.095,y,z);
     plane.rotation.y=p.side===-1?Math.PI/2:-Math.PI/2;
+    plane.scale.set(width*1.18,height*1.20,1);
     group.add(plane);
-    const shutter=this.material(this.shutters,p.district.key);
-    for(const delta of [-width/2-.15,width/2+.15]){
-      this.box(group,inner-p.side*.12,y,z+delta,.08,height*.91,.24,shutter);
-    }
-    const trim=this.material(this.trims,p.district.key);
-    this.box(group,inner-p.side*.12,y-height/2-.08,z,.12,.12,width+.38,trim);
   }
 
   private frontDoor(
     group:THREE.Group,p:HouseProfile,inner:number,
     base:number,z:number,
   ):void{
-    const door=this.material(this.doors,p.district.key);
-    const frame=this.material(this.trims,p.district.key);
-    this.box(group,inner-p.side*.065,base+.91,z,.10,1.81,.98,door);
-    for(const offset of [-.55,.55]){
-      this.box(group,inner-p.side*.13,base+.98,z+offset,.16,1.97,.15,frame);
-    }
-    this.box(group,inner-p.side*.13,base+1.98,z,.16,.13,1.23,frame);
-    this.box(group,inner-p.side*.15,base+.93,z+.27,.11,.08,.08,frame);
+    const index=p.district.key==='market'||p.district.key==='twilight'
+      ?3:2+(p.variation%2);
+    const plane=new THREE.Mesh(this.decalGeometry,this.openingMaterials[index]!);
+    plane.position.set(inner-p.side*.11,base+1.07,z);
+    plane.rotation.y=p.side===-1?Math.PI/2:-Math.PI/2;
+    plane.scale.set(1.24,2.24,1);
+    group.add(plane);
   }
 
   private leaf(
@@ -456,5 +473,6 @@ export class DistrictBuildings{
     this.hipRoofGeometry.dispose();
     this.gableGeometry.dispose();
     this.awningGeometry.dispose();
+    this.decalGeometry.dispose();
   }
 }
