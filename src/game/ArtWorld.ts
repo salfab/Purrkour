@@ -10,7 +10,7 @@ import {terraceQuadUV,trackQuadUV,jumpShadowAppearance,profileFrame} from './vis
 import {movingObstaclesNear,type MovingObstacle} from './movingObstacles';
 import {MovingObstacleArt} from './MovingObstacleArt';
 import {DistrictBuildings} from './DistrictBuildings';
-import {houseProfile} from './districts';
+import {houseProfilesForChunk} from './districts';
 
 function canvasTexture(size: number, paint: (ctx: CanvasRenderingContext2D, size: number) => void): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -557,20 +557,16 @@ export class ArtWorld {
       group.add(object);
       this.movingViews.set(obstacle.id,{object,obstacle});
     }
-    if(index%3===0&&from+5>=visualStart&&from+5<visualEnd){
-      const z=from+5;
-      const primary: -1|1=Math.floor(index/3)%2===0?-1:1;
-      const other: -1|1=primary===-1?1:-1;
-      const sides:readonly (-1|1)[]=index%6===0?[primary,other]:[primary];
-      for(const side of sides){
-        const house=houseProfile(index,runSeed,side,z);
-        // The 45° decorative merge stays clear even with wider houses,
-        // balconies, awnings and cornices.
-        if(fakeMergeOverlapsBuilding(
-          z,house.centerX,route,house.width/2+.75,house.depth/2+.35,
-        ))continue;
-        this.districtBuildings.add(group,house,groundHeight(z));
-      }
+    // A denser but staggered town: mostly one modest facade per 12 m,
+    // with deliberate courtyards and occasional smaller buildings opposite.
+    // Never place any facade over the playable Y or the fake 45° merge.
+    for(const house of houseProfilesForChunk(index,runSeed)){
+      if(house.z<visualStart||house.z>=visualEnd)continue;
+      if(fakeMergeOverlapsBuilding(
+        house.z,house.centerX,route,
+        house.width/2+.90,house.depth/2+.48,
+      ))continue;
+      this.districtBuildings.add(group,house,groundHeight(house.z));
     }
     this.warpChunk(group,route);
     return group;
