@@ -19,8 +19,8 @@ export const WORLD = {
   bounceVelocity: 8.6,
   steeringSpeed: 12,
   speedStart: 3.8,
-  acceleration: 0.07,
-  speedMax: 8.5,
+  acceleration: 0.09,
+  speedMax: 12.5,
   boostSpeed: 1.7,
   boostDuration: 2.7,
   cameraHeight: 5.6,
@@ -37,7 +37,7 @@ export function worldXFromScreenRatio(ratio: number): number {
   return (1 - 2 * clamped) * (WORLD.trackWidth / 2 - .28);
 }
 
-export type GameMode = 'menu' | 'running' | 'paused' | 'over';
+export type GameMode = 'menu' | 'running' | 'paused' | 'dying' | 'over';
 export type Failure = 'crate' | 'gap' | null;
 export interface Player {
   x: number; y: number; z: number; vy: number; grounded: boolean; coyote: number;
@@ -89,7 +89,7 @@ export function cratesNear(start:number,end:number,runSeed=0,route:RouteChoice|n
   for(let k=Math.max(0,Math.floor(start/100)-1);k<=Math.floor(end/100)+1;k++){
     const base=k*100;
     for(const placement of segmentPlan(k,runSeed,route).placements){
-      if(!patternHasCrate(placement.id))continue;
+      if(!patternHasCrate(placement.id)||base+placement.at>=DESCENT.start&&base+placement.at<DESCENT.end)continue;
       const label=placement.slot==='intro'?'a':placement.slot==='choice'?'b':placement.slot==='pressure'?'t':'c';
       crates.push({
         id:label+'-'+k,
@@ -117,6 +117,7 @@ export function pickupsNear(start:number,end:number,runSeed=0,route:RouteChoice|
     const beforeGap=plan.placements.find(p=>p.slot==='pressure');
     for(const p of plan.placements){
       const {id,at,x,slot}=p;
+      if(base+at>=DESCENT.start&&base+at<DESCENT.end&&(patternHasCrate(id)||id==='rolling-cart'||id==='pigeon-crossing'))continue;
       const prefix=slot+'-'+id;
       if(id==='fish-lane'){
         fishLine(prefix,[x-.55,x-.28,x,x+.28,x+.55].map(v=>Math.max(-1.65,Math.min(1.65,v))),at,.85);
@@ -276,6 +277,12 @@ export function simulate(player: Player, controls: Controls, collected: Set<stri
     if(landed&&!player.failure)rewardLanding(player);
   }
   if (player.failure){rewardFailure(player);return;}
+  if(player.grounded&&player.z>=700&&player.z<760&&Math.abs(player.x)>1.7&&!player.hitMovingObstacles.has('drain')){
+    player.hitMovingObstacles.add('drain');
+    player.stumbleRemaining=MOVING_RULES.penaltySeconds;
+    player.score=Math.max(0,player.score-MOVING_RULES.penaltyPoints);
+    rewardFailure(player);
+  }
   for(const gate of DESCENT.gates){
     if(priorZ>=gate.z||player.z<gate.z)continue;
     if(player.grounded&&Math.abs(player.x-gate.x)<.72){
@@ -299,7 +306,7 @@ export function simulate(player: Player, controls: Controls, collected: Set<stri
     player.score=Math.max(0,player.score-MOVING_RULES.penaltyPoints);
     rewardFailure(player); // Lose combo, not fish or Instinct.
   }
-  for (const item of pickupsNear(player.z - 1.2, player.z + 1.6, player.runSeed,route)) {
+  for (const item of pickupsNear(player.z - Math.max(1.2,player.speed*.42), player.z + 1.6, player.runSeed,route)) {
     if (collected.has(item.id)) continue;
     if(rewardPickupInReach(player,item,player.x,player.y,player.z)){
       collected.add(item.id);

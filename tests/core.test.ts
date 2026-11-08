@@ -69,4 +69,22 @@ describe('Purrkour deterministic gameplay', () => {
     for(let i=0;i<20&&!player.failure&&player.bounces===0;i++)simulate(player,input(),new Set(),1/120);
     expect(player.failure).toBe(null); expect(player.bounces).toBe(1); expect(player.vy).toBe(WORLD.bounceVelocity);
   });
+  it.each([0,WORLD.boostDuration])('keeps the high fish reachable after a bounce at maximum speed with boost %s',boost=>{
+    const player=makePlayer();player.elapsed=200;player.boost=boost;
+    const crate=cratesNear(100,200).find(c=>c.id==='b-1')!;
+    player.x=crate.x;player.z=crate.z;player.y=groundHeight(crate.z)+crate.height;
+    player.grounded=false;player.vy=WORLD.bounceVelocity;
+    player.rewards.comboStage='bounce';player.rewards.comboStageUntil=205;
+    const collected=new Set<string>();
+    for(let i=0;i<80&&!player.failure;i++)simulate(player,input(),collected,1/120);
+    expect(collected.has('choice-bounce-grab-gold-1')).toBe(true);
+  });
+  it('slows the cat on the edge grates while leaving the middle safe',()=>{
+    for(const x of [0,2]){
+      const p=makePlayer();p.z=705;p.x=x;p.y=groundHeight(p.z);
+      simulate(p,input(),new Set(),1/120);
+      expect(p.stumbleRemaining>0).toBe(x===2);
+      expect(p.failure).toBeNull();
+    }
+  });
 });

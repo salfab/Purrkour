@@ -247,6 +247,8 @@ export class ArtWorld {
   private readonly crateMaterial:THREE.MeshLambertMaterial;
   private readonly gateMaterial:THREE.MeshBasicMaterial;
   private readonly gateAccent:THREE.MeshBasicMaterial;
+  private readonly drainMaterial=new THREE.MeshLambertMaterial({color:'#555c60'});
+  private readonly drainBars=new THREE.MeshLambertMaterial({color:'#a6a6a0'});
   private readonly pickupMaterials:Record<Pickup['kind'],THREE.SpriteMaterial>;
   private readonly fishArt:FishArt;
   private readonly propMaterials:{window:THREE.SpriteMaterial;flower:THREE.SpriteMaterial;banner:THREE.SpriteMaterial};
@@ -267,6 +269,7 @@ export class ArtWorld {
   private wasGrounded=true;
   private lastLandingAt=Number.NEGATIVE_INFINITY;
   private readonly catSprite:THREE.Sprite;
+  private readonly cryingFrames:THREE.Texture[]=[];
   private readonly shadow:THREE.Mesh<THREE.CircleGeometry,THREE.MeshBasicMaterial>;
   private lastFrame=-1;
   private readonly chunkLength=12;
@@ -295,7 +298,7 @@ export class ArtWorld {
     this.gapLipMaterial=new THREE.MeshLambertMaterial({color:'#be9578'});
     this.gateMaterial=new THREE.MeshBasicMaterial({color:'#50d9c7'});
     this.gateAccent=new THREE.MeshBasicMaterial({color:'#fff4c1'});
-    this.materials.push(this.edgeMaterial,this.gapLipMaterial,this.gateMaterial,this.gateAccent);
+    this.materials.push(this.edgeMaterial,this.gapLipMaterial,this.gateMaterial,this.gateAccent,this.drainMaterial,this.drainBars);
     const sprite=(t:THREE.Texture)=>{const m=new THREE.SpriteMaterial({map:tex(t),transparent:true,alphaTest:.05,depthWrite:false});this.materials.push(m);return m;};
     this.pickupMaterials={fish:sprite(iconTexture('fish')),gold:sprite(iconTexture('gold')),sky:sprite(iconTexture('gold')),boost:sprite(iconTexture('boost'))};
     this.fishArt=new FishArt(this.pickupMaterials);
@@ -347,6 +350,12 @@ export class ArtWorld {
     this.shadow=new THREE.Mesh(new THREE.CircleGeometry(.38,24),shadowMat);
     this.shadow.rotation.x=-Math.PI/2;this.shadow.position.y=.02;
     this.cat.add(this.shadow,this.catSprite);
+    for(const name of ['closed','open']){
+      const texture=new THREE.TextureLoader().load(`${import.meta.env.BASE_URL}assets/character/cat-cry-${name}.png`);
+      texture.colorSpace=THREE.SRGBColorSpace;texture.generateMipmaps=true;
+      texture.minFilter=THREE.LinearMipmapLinearFilter;texture.magFilter=THREE.LinearFilter;
+      this.cryingFrames.push(texture);this.textures.push(texture);
+    }
     // Real hand-drawn kawaii sprites, 4 columns × 2 rows. The canvas cat
     // above is retained exclusively as a graceful fallback while loading.
     const atlas=new THREE.TextureLoader().load(
@@ -580,6 +589,13 @@ export class ArtWorld {
     for(const gate of DESCENT.gates){
       if(gate.z>=visualStart&&gate.z<visualEnd)this.addDescentGate(group,gate.z,gate.x);
     }
+    for(let z=Math.max(700,Math.ceil(visualStart/2)*2);z<Math.min(760,visualEnd);z+=2){
+      for(const side of [-1,1]){
+        this.box(group,side*2.08,groundHeight(z+1)+.025,z+1,.7,.05,2,this.drainMaterial);
+        for(let dz=.2;dz<2;dz+=.4)
+          this.box(group,side*2.08,groundHeight(z+dz)+.06,z+dz,.65,.035,.055,this.drainBars);
+      }
+    }
     for(const p of pickupsNear(visualStart,visualEnd,runSeed,activeRoute(visualStart+1,route))){
       if(p.z<visualStart||p.z>=visualEnd)continue;
       const sprite=new THREE.Sprite(this.pickupMaterials[p.kind]);
@@ -688,7 +704,7 @@ export class ArtWorld {
     (this.catSprite.material as THREE.SpriteMaterial).rotation=amount;
   }
 
-  update(player:Player,collected:ReadonlySet<string>):void{
+  update(player:Player,collected:ReadonlySet<string>,failureAge:number|null=null):void{
     if(player.runSeed!==this.activeRunSeed)this.resetRun(player.runSeed);
     this.refreshRoute(player.routeChoice);
     const start=Math.max(0,Math.floor((player.z-15)/this.chunkLength));
@@ -718,6 +734,17 @@ export class ArtWorld {
     }
     const position=routePoint(player.z,player.x,player.routeChoice);
     this.cat.position.set(position.x,player.y,position.z);
+    if(failureAge!==null){
+      this.cat.position.y=groundHeight(player.z);
+      const material=this.catSprite.material as THREE.SpriteMaterial;
+      const frame=this.cryingFrames[Math.floor(failureAge/.3)%2===0?1:0];
+      if(frame&&material.map!==frame){material.map=frame;material.needsUpdate=true;}
+      this.lastFrame=-1;
+      this.catSprite.scale.set(1.9,1.9,1);this.catSprite.position.y=.85;
+      material.rotation=0;material.color.set('#ffffff');
+      this.shadow.position.y=.025;
+      return;
+    }
     const view=catViewFromLocalX(player.x);
     const shadowHeight=Math.max(0,player.y-groundHeight(player.z));
     const shadowStyle=jumpShadowAppearance(shadowHeight);
@@ -745,7 +772,9 @@ export class ArtWorld {
       1,
     );
     this.catSprite.position.y=(sliding?.68:.85)+(isRear?rear.yOffset:0);
-    material.rotation=isRear?rear.tilt:0;
+    material.rotation=player.stumbleRemaining>0
+      ?Math.sin(player.elapsed*22)*.13
+      :isRear?rear.tilt:0;
   }
   dispose():void{
     this.resetRun(0);

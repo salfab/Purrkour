@@ -1,5 +1,6 @@
 import {segmentPlan} from './gameplayDirector';
 import type {RouteChoice} from './routeChoices';
+import {DESCENT} from './descent';
 
 /**
  * v0.18 moving hazards.
@@ -48,6 +49,7 @@ export function movingObstaclesNear(
     for(const [index,p] of plan.placements.entries()){
       if(p.id!=='pigeon-crossing'&&p.id!=='rolling-cart')continue;
       const z=k*100+p.at;
+      if(z>=DESCENT.start&&z<DESCENT.end)continue;
       const kind:MovingObstacleKind=p.id==='pigeon-crossing'?'pigeons':'cart';
       obstacles.push({
         id:`${kind}-${k}-${p.slot}`,

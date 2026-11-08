@@ -81,6 +81,8 @@ export function segmentPlan(segment:number,runSeed=0,route:RouteChoice|null=null
   } else if(k===5){
     // Teach a moving bounce after the pigeons.
     ids=['recovery-strip','rolling-cart','weave','recovery-strip'];
+  } else if(k===6){
+    ids=['recovery-strip','recovery-strip','slalom','rolling-cart'];
   } else{
     const intro:readonly PatternId[]=tier>=2
       ? ['fish-lane','jump-grab','safe-or-skill','jump-grab']

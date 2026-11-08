@@ -47,6 +47,7 @@ export class PurrkourGame {
   private readonly collected=new Set<string>();
   private player: Player=makePlayer();
   private mode: GameMode='menu';
+  private failureAge=0;
   private best=storedNumber('purrkour-best-v1');
   private bestScore=storedNumber('purrkour-best-score-v4');
   private bank=storedNumber('purrkour-fish-bank-v05');
@@ -121,6 +122,7 @@ export class PurrkourGame {
   start():void{
     const runSeed=Date.now()|0;
     this.player=makePlayer(runSeed);this.collected.clear();
+    this.failureAge=0;
     this.world.resetRun(runSeed);
     this.cameraInitialized=false;
     this.accumulator=0;this.hudTimer=0;
@@ -164,10 +166,14 @@ export class PurrkourGame {
       for(let i=0;i<10&&this.accumulator>=1/120;i++){
         simulate(this.player,this.controls.state,this.collected,1/120);
         this.accumulator-=1/120;
-        if(this.player.failure){this.end();break;}
+        if(this.player.failure){this.mode='dying';this.failureAge=0;this.controls.setEnabled(false);this.music.pause();this.publish();break;}
       }
       this.hudTimer+=dt;
       if(this.hudTimer>.10){this.hudTimer=0;this.publish();}
+    }
+    if(this.mode==='dying'){
+      this.failureAge+=dt;
+      if(this.failureAge>=1.8)this.end();
     }
     const blend=districtBlend(this.player.z);
     const currentIndex=DISTRICTS.findIndex(d=>d.key===blend.current.key);
@@ -181,7 +187,7 @@ export class PurrkourGame {
       .copy(this.sunColors[current]!).lerp(this.sunColors[nextIndex]!,blend.factor);
     this.horizonTint
       .copy(this.horizonColors[current]!).lerp(this.horizonColors[nextIndex]!,blend.factor);
-    this.world.update(this.player,this.collected);
+    this.world.update(this.player,this.collected,this.mode==='dying'?this.failureAge:null);
     this.rushEffects.update(this.player,this.mode==='running');
     this.fork.update(this.player.routeChoice,this.player.elapsed,this.player.z);
     frameRouteCamera(
@@ -211,7 +217,7 @@ export class PurrkourGame {
     this.frameId=requestAnimationFrame(this.frame);
   };
   private end():void{
-    if(this.mode!=='running')return;
+    if(this.mode!=='dying')return;
     this.mode='over';this.controls.setEnabled(false);this.music.pause();
     this.best=Math.max(this.best,Math.floor(this.player.z));
     this.bestScore=Math.max(this.bestScore,this.player.score);

@@ -1,13 +1,13 @@
 /** A short, authored change of rhythm after the first fork. */
 export const DESCENT={
   start:450,
-  end:520,
-  drop:7,
-  speedBonus:1.7,
+  end:650,
+  drop:15,
+  speedBonus:4,
   gates:[
-    {z:468,x:-1.3},
-    {z:487,x:1.3},
-    {z:506,x:0},
+    {z:485,x:-1.3},
+    {z:540,x:1.3},
+    {z:605,x:0},
   ],
 } as const;
 

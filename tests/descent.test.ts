@@ -61,7 +61,7 @@ describe('first downhill sequence',()=>{
     player.y=groundHeight(player.z);player.elapsed=50;
     const controls=input();
     const collected=new Set<string>();
-    for(let step=0;step<1500&&player.z<DESCENT.end&&!player.failure;step++){
+    for(let step=0;step<3000&&player.z<DESCENT.end&&!player.failure;step++){
       const next=DESCENT.gates.find(gate=>gate.z>player.z);
       controls.targetX=next?.x??0;
       simulate(player,controls,collected,1/120);

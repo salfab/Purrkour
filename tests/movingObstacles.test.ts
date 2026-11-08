@@ -13,16 +13,16 @@ function control():Controls{
   return {targetX:null,left:false,right:false,jump:false};
 }
 describe('v0.18 dynamic nonviolent obstacles',()=>{
-  it('introduces pigeons at 441m then fruit carts at 541m, never in the tutorial or fork',()=>{
+  it('introduces pigeons before the descent and fruit carts after it',()=>{
     expect(movingObstaclesNear(0,400,12)).toEqual([]);
     expect(segmentPlan(4,12).placements[1]?.id).toBe('pigeon-crossing');
-    expect(segmentPlan(5,12).placements[1]?.id).toBe('rolling-cart');
+    expect(segmentPlan(6,12).placements[3]?.id).toBe('rolling-cart');
     const pigeon=movingObstaclesNear(435,447,12)[0];
-    const cart=movingObstaclesNear(535,548,12)[0];
+    const cart=movingObstaclesNear(685,692,12).find(o=>o.kind==='cart');
     expect(pigeon?.kind).toBe('pigeons');
     expect(pigeon?.z).toBe(441);
     expect(cart?.kind).toBe('cart');
-    expect(cart?.z).toBe(541);
+    expect(cart?.z).toBe(688);
     expect(pigeon!.z).toBeGreaterThan(ROUTE_FORK.endZ);
   });
   it('is reproducible for each run and keeps a safe lane for every moving hazard',()=>{
@@ -73,7 +73,7 @@ describe('v0.18 dynamic nonviolent obstacles',()=>{
     expect(p.hitMovingObstacles.size).toBe(0);
   });
   it('bounces from the top of a rolling cart, scoring without a side hit',()=>{
-    const cart=movingObstaclesNear(538,545,77)[0]!;
+    const cart=movingObstaclesNear(685,692,77).find(o=>o.kind==='cart')!;
     const p=makePlayer(77);
     p.z=cart.z-.08;
     p.x=movingObstacleX(cart,cart.z);

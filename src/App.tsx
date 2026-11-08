@@ -120,32 +120,31 @@ export function App() {
       <strong>↔ GLISSE LE POUCE POUR DIRIGER</strong>
       <span>↑ RELÂCHE POUR SAUTER</span>
     </div>}
-    {!running&&<section className="overlay">
+    {status.mode==='paused'&&<section className="pause-screen" aria-label="Jeu en pause"
+      style={{backgroundImage:`url(${import.meta.env.BASE_URL}assets/ui/pawsed-v1.png)`}}>
+      <div className="pause-content">
+        <div className="pause-eyebrow">🐾 &nbsp; PETITE PAUSE SUR LES TOITS</div>
+        <h1>PAWSED</h1>
+        <p>Une petite pause avant de repartir à l’aventure.</p>
+        <button type="button" className="pause-resume" onClick={()=>game.current?.resume()}>▶ &nbsp; Reprendre</button>
+        <button type="button" className="pause-restart" onClick={()=>game.current?.start()}>Recommencer</button>
+      </div>
+    </section>}
+    {status.mode==='menu'&&!error&&<section className="pause-screen splash-screen" aria-label="Accueil Purrkour"
+      style={{backgroundImage:`url(${import.meta.env.BASE_URL}assets/ui/pawsed-v1.png)`}}>
+      <div className="pause-content splash-content">
+        <div className="pause-eyebrow">🐾 &nbsp; UNE AVENTURE SUR LES TOITS</div>
+        <h1>Purrkour</h1>
+        <p>Un petit chat, de grands sauts et mille poissons.</p>
+        <button type="button" className="pause-resume" onClick={()=>game.current?.start()}>▶ &nbsp; Commencer le run</button>
+        <small>VERSION 0.19.0</small>
+      </div>
+    </section>}
+    {(status.mode==='over'||!!error)&&<section className="overlay">
       <div className="dialog">
-        <div className="eyebrow">PURRKOUR · V0.18.8 · MOBILE FIRST</div>
+        <div className="eyebrow">PURRKOUR · V0.19.0 · MOBILE FIRST</div>
         <h1>Purrkour 🐈</h1>
         {error&&<p className="error">Impossible de démarrer le jeu : {error}</p>}
-        {!error&&status.mode==='menu'&&<>
-          <p>Un petit chat kawaii, des toits colorés et toujours plus de vitesse !</p>
-          <ul>
-            <li>Glisse ton pouce en bas de l'écran pour guider le chat.</li>
-            <li>Relâche pour sauter. Les caisses deviennent des trampolines !</li>
-            <li>Les poissons remplissent l'Instinct : à 100, Purr Rush attire les poissons bleus !</li>
-            <li>Rebond + poisson doré haut + réception réussie = combo PURRFECT.</li>
-            <li>Après 400 m : pigeons qui traversent et chariots de fruits roulants !</li>
-            <li>Attrape des poissons, puis apprends à rebondir pour saisir les bonus les plus hauts.</li>
-            <li>Choisis entre les poissons faciles au sol et les récompenses à risque.</li>
-            <li>Vers 250 m, choisis ta route en te plaçant à gauche ou à droite.</li>
-            <li>Après la réunion des chemins, suis les trois arches de la descente pour gagner des points.</li>
-            <li>La vitesse augmente naturellement pendant le run.</li>
-          </ul>
-          <button type="button" onClick={()=>game.current?.start()}>Commencer le run</button>
-        </>}
-        {!error&&status.mode==='paused'&&<>
-          <p>Le petit chat reprend son souffle.</p>
-          <button type="button" onClick={()=>game.current?.resume()}>Reprendre</button>
-          <button type="button" className="secondary" onClick={()=>game.current?.start()}>Recommencer</button>
-        </>}
         {!error&&status.mode==='over'&&<>
           <h2>Encore un saut !</h2>
           <p>{status.failure==='crate'?'Oups ! Une caisse de côté.':'Oups ! Le chat est tombé dans un fossé.'}</p>
@@ -162,7 +161,7 @@ export function App() {
           </div>
           <button type="button" onClick={()=>game.current?.start()}>Rejouer</button>
         </>}
-        <p>Prototype mobile v0.18.8 · Maisons illustrées en volume.</p>
+        <p>Prototype mobile v0.19.0 · Maisons illustrées en volume.</p>
       </div>
     </section>}
   </main>;

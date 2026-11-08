@@ -149,8 +149,10 @@ export function rewardPickupInReach(
   const magnet=actor.rewards.rushRemaining>0 && pickup.kind==='fish';
   const reachX=magnet?Math.max(pickup.rangeX,REWARD_RULES.magnetX):pickup.rangeX;
   const reachY=magnet?Math.max(pickup.rangeY,REWARD_RULES.magnetY):pickup.rangeY;
-  const reachZ=magnet?Math.max(pickup.rangeZ,REWARD_RULES.magnetZ):pickup.rangeZ;
+  const speed='speed' in actor&&typeof actor.speed==='number'?actor.speed:0;
+  const behind=(pickup.kind==='sky'&&actor.rewards.comboStage==='bounce'||pickup.kind==='gold')
+    ?Math.max(pickup.rangeZ,speed*.42):pickup.rangeZ;
   return Math.abs(x-pickup.x)<reachX &&
-    Math.abs(z-pickup.z)<reachZ &&
+    z-pickup.z<behind && pickup.z-z<(magnet?Math.max(pickup.rangeZ,REWARD_RULES.magnetZ):pickup.rangeZ) &&
     Math.abs(y+.6-pickup.y)<reachY;
 }
