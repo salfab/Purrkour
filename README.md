@@ -145,3 +145,8 @@ Le chat de dos utilise désormais `public/assets/character/cat_rear_clean.png` :
 Le chat **vu de dos** joue désormais des poses différentes en montée, au sommet du saut, en descente et à la réception ; les sprites de profil et les poissons ne changent pas. Le module `src/game/catMotion.ts` est purement déterministe et couvert par des tests.
 
 Pour le panorama, `ScenicBackdrop.ts` essaie en priorité `public/assets/backgrounds/mediterranean_horizon_hq.jpg`, une version JPEG haute qualité de l'image source originale 2172×724 (export ciblé 1536×512, qualité 92). **Il faut encore importer ce fichier JPEG dans le dépôt** : en son absence, le jeu se replie sur `mediterranean_horizon.avif` pour ne pas afficher un fond vide. L'ancien AVIF pourra être supprimé une fois le JPEG installé et validé sur téléphone.
+
+
+## v0.17.5 — Visuels de boost et texture du terrain
+
+Le jeu utilise bien le panorama HQ JPEG déjà présent dans `public/assets/backgrounds/`. Le boost de vitesse conserve le sprite de profil original à traits jaunes (image 7), ajoute de petites lignes de vitesse et utilise des versions enrichies des quatre poses arrière nettoyées. L'ombre diminue progressivement pendant les sauts. Le motif des terrasses en contrebas a été agrandi et ses UV sont continus entre les segments. Voir `docs/GAMEPLAY.md`.

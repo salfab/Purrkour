@@ -6,6 +6,8 @@ import {routePoint,streamedRoadInterval,fakeMergeOverlapsBuilding} from './route
 import {catViewFromLocalX,mirrorProfileForView} from './catView';
 import {isolateCharacterFrames,setCharacterMirror,configureCharacterTexture} from './characterFrames';
 import {catRearPose} from './catMotion';
+import {createRearBoostFrames} from './characterFrames';
+import {terraceQuadUV,jumpShadowAppearance,profileFrame} from './visualPolish';
 
 function canvasTexture(size: number, paint: (ctx: CanvasRenderingContext2D, size: number) => void): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -241,12 +243,14 @@ export class ArtWorld {
   private catFrames:THREE.CanvasTexture[]=[];
   private rearAtlasReady=false;
   private rearFrames:THREE.CanvasTexture[]=[];
+  private rearBoostFrames:THREE.CanvasTexture[]=[];
   private readonly catCanvas:HTMLCanvasElement;
   private readonly catTexture:THREE.CanvasTexture;
   private readonly rearCanvas:HTMLCanvasElement;
   private readonly rearTexture:THREE.CanvasTexture;
   private backView=false;
   private lastMirrored=false;
+  private lastBoost=false;
   private wasGrounded=true;
   private lastLandingAt=Number.NEGATIVE_INFINITY;
   private readonly catSprite:THREE.Sprite;
@@ -267,7 +271,9 @@ export class ArtWorld {
     this.roofMaterial=mat(roofTexture());
     this.crateMaterial=mat(woodTexture());
     this.loadPaintedTexture('track_pavers.webp',this.groundMaterial,2.1,.85);
-    this.loadPaintedTexture('terrace_pavers.webp',this.terraceMaterial,3.3,4.2);
+    // Old UV * 3.3/4.2 tiled the lower road into a distracting houndstooth.
+    // The mesh now uses continuous 8-metre tiles with no extra repeat.
+    this.loadPaintedTexture('terrace_pavers.webp',this.terraceMaterial,1,1);
     this.loadPaintedTexture('stucco_cream_v2.webp',this.wallMaterial,2.1,1.5);
     this.loadPaintedTexture('stucco_peach_v2.webp',this.peachMaterial,2.1,1.5);
     this.edgeMaterial=new THREE.MeshLambertMaterial({color:'#f3d39d'});
@@ -342,10 +348,11 @@ export class ArtWorld {
         try{
           // New PNG source has clean transparent margins; keep per-frame RGBA isolation.
           this.rearFrames=isolateCharacterFrames(loaded.image as HTMLImageElement,4,1,'rear');
-          this.textures.push(...this.rearFrames);
-          this.rearAtlasReady=this.rearFrames.length===4;
+          this.rearBoostFrames=createRearBoostFrames(this.rearFrames);
+          this.textures.push(...this.rearFrames,...this.rearBoostFrames);
+          this.rearAtlasReady=this.rearFrames.length===4&&this.rearBoostFrames.length===4;
           this.lastFrame=-1;
-          this.drawCat(0,this.backView,this.lastMirrored);
+          this.drawCat(0,this.backView,this.lastMirrored,this.lastBoost);
         }catch(error){
           console.warn('Purrkour: rear cat frame fallback',error);
         }
@@ -383,17 +390,19 @@ export class ArtWorld {
     texture.anisotropy=2;
     this.textures.push(texture);
   }
-  private drawCat(index:number,back:boolean,mirrored=false):void{
-    if(this.lastFrame===index&&this.backView===back&&this.lastMirrored===mirrored)return;
+  private drawCat(index:number,back:boolean,mirrored=false,boost=false):void{
+    if(this.lastFrame===index&&this.backView===back
+      &&this.lastMirrored===mirrored&&this.lastBoost===boost)return;
     this.lastFrame=index;
     this.backView=back;
     this.lastMirrored=mirrored;
+    this.lastBoost=boost;
     const material=this.catSprite.material as THREE.SpriteMaterial;
 
     if(back){
       this.catSprite.scale.x=1.9;
       if(this.rearAtlasReady){
-        const frame=this.rearFrames[index%4];
+        const frame=(boost?this.rearBoostFrames:this.rearFrames)[index%4];
         if(frame){
           if(material.map!==frame){
             material.map=frame;
@@ -473,7 +482,7 @@ export class ArtWorld {
       for (const [x0,x1] of [[-terrainExtent,-2.7],[2.7,terrainExtent]] as const) {
         const a=terrainTop(z), b=terrainTop(end);
         terrainVertices.push(x0,a,z,x0,b,end,x1,a,z, x0,b,end,x1,b,end,x1,a,z);
-        terrainUv.push(x0*.21,z*.36,x0*.21,end*.36,x1*.21,z*.36, x0*.21,end*.36,x1*.21,end*.36,x1*.21,z*.36);
+        terrainUv.push(...terraceQuadUV(x0,x1,z,end));
       }
       const bounds=[z,end];
       for(let cycle=Math.floor(z/100);cycle<=Math.floor(end/100);cycle++){
@@ -491,7 +500,7 @@ export class ArtWorld {
           const a=terrainTop(near),b=terrainTop(far);
           const x0=-WORLD.trackWidth/2-.2,x1=WORLD.trackWidth/2+.2;
           terrainVertices.push(x0,a,near,x0,b,far,x1,a,near,x0,b,far,x1,b,far,x1,a,near);
-          terrainUv.push(x0*.21,near*.36,x0*.21,far*.36,x1*.21,near*.36,x0*.21,far*.36,x1*.21,far*.36,x1*.21,near*.36);
+          terrainUv.push(...terraceQuadUV(x0,x1,near,far));
           continue;
         }
         const a=groundHeight(near),b=groundHeight(far),w=WORLD.trackWidth/2;
@@ -641,21 +650,24 @@ export class ArtWorld {
     const position=routePoint(player.z,player.x,player.routeChoice);
     this.cat.position.set(position.x,player.y,position.z);
     const view=catViewFromLocalX(player.x);
+    const shadowHeight=Math.max(0,player.y-groundHeight(player.z));
+    const shadowStyle=jumpShadowAppearance(shadowHeight);
     this.shadow.position.y=groundHeight(player.z)-player.y+.025;
-    (this.shadow.material as THREE.MeshBasicMaterial).opacity=player.grounded?.3:Math.max(.08,.3-(player.y-groundHeight(player.z))*.055);
+    this.shadow.scale.setScalar(shadowStyle.scale);
+    (this.shadow.material as THREE.MeshBasicMaterial).opacity=shadowStyle.opacity;
     if(!this.wasGrounded && player.grounded)this.lastLandingAt=player.elapsed;
     this.wasGrounded=player.grounded;
     const rear=catRearPose(
       player.grounded,player.vy,player.anim,player.elapsed-this.lastLandingAt,
     );
-    const sideFrame=player.boost>0?7:!player.grounded?6:Math.floor(player.anim)%6;
+    const sideFrame=profileFrame(player.boost,player.grounded,player.anim);
     // The cleaned rear sheet now has separate takeoff/apex/fall/landing
     // animations instead of translating a frozen running pose upwards.
     const frame=view==='rear'?rear.frame:sideFrame;
     // Keep the kawaii sprite's colors; Rush adds a small warm tint only.
     const material=this.catSprite.material as THREE.SpriteMaterial;
     material.color.set(player.rewards.rushRemaining>0?'#fff1bd':'#ffffff');
-    this.drawCat(frame,view==='rear',mirrorProfileForView(view));
+    this.drawCat(frame,view==='rear',mirrorProfileForView(view),player.boost>0);
     const isRear=view==='rear';
     this.catSprite.scale.set(
       1.9*(isRear?rear.scaleX:1),

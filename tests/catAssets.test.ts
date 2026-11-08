@@ -25,6 +25,8 @@ describe('clean rear cat sprite sheet',()=>{
     expect(source).toContain('assets/character/cat_atlas.png');
     expect(source).toContain("fish:sprite(iconTexture('fish'))");
     expect(source).toContain("isolateCharacterFrames(loaded.image as HTMLImageElement,4,1,'rear')");
+    expect(source).toContain('createRearBoostFrames(this.rearFrames)');
+    expect(source).toContain('profileFrame(player.boost,player.grounded,player.anim)');
   });
   it('decodes on CI when ffmpeg is available',()=>{
     const check=spawnSync('ffmpeg',[

@@ -26,7 +26,9 @@ export class ScenicBackdrop {
         const image=texture.image as (CanvasImageSource & {width:number;height:number})|undefined;
         if(!image || !(image.width>0) || !(image.height>0))return;
 
-        const width=Math.min(1024,image.width);
+        // The HQ JPEG now exists in the repository; retain enough pixels for
+        // a high-density phone display without stretching the artwork.
+        const width=Math.min(1536,image.width);
         const height=Math.max(1,Math.round(width*image.height*this.cropHeight/image.width));
         const canvas=document.createElement('canvas');
         canvas.width=width;canvas.height=height;
@@ -67,9 +69,8 @@ export class ScenicBackdrop {
         this.panorama.renderOrder=-10;
         this.group.add(this.panorama);
     };
-    // Prefer the high-quality JPEG exported from the original 2172×724 PNG.
-    // Until the image is uploaded to GitHub, retain the old AVIF as fallback
-    // to avoid a blank background for anyone opening the live game.
+    // Prefer the HQ JPEG now committed to public/assets/backgrounds/.
+    // Only fall back to the tiny AVIF if the JPEG cannot load.
     this.loader.load(
       `${import.meta.env.BASE_URL}assets/backgrounds/mediterranean_horizon_hq.jpg`,
       applyPanorama,

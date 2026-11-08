@@ -91,6 +91,51 @@ export function isolateCharacterFrames(
   return output;
 }
 
+/**
+ * Four DISTINCT boost poses from the cleaned rear sheet, one per running
+ * animation frame. Paint translucent yellow streaks around (not over) the
+ * kitten and keep the original silhouette and transparent margins.
+ *
+ * These are created just once when the atlas loads; no canvas allocations
+ * during gameplay and no new compressed binary assets.
+ */
+export function createRearBoostFrames(
+  cleanFrames:readonly THREE.CanvasTexture[],
+):THREE.CanvasTexture[]{
+  return cleanFrames.map((frame,index)=>{
+    const original=frame.image as HTMLCanvasElement;
+    const canvas=document.createElement('canvas');
+    canvas.width=original.width;
+    canvas.height=original.height;
+    const ctx=canvas.getContext('2d');
+    if(!ctx)throw new Error('Canvas2D required for boost frames');
+    const scale=canvas.width/96;
+    ctx.save();ctx.scale(scale,scale);
+    const shift=index%2===0?0:5;
+    // Golden streaks flank the silhouette instead of covering the paws.
+    for(const side of [-1,1]){
+      const anchor=side<0?23:73;
+      const direction=side<0?-1:1;
+      ctx.lineCap='round';
+      for(let i=0;i<3;i++){
+        const y=49+i*13+shift;
+        const x=anchor+direction*(i%2)*3;
+        ctx.strokeStyle=i===0?'rgba(255,246,173,.95)':'rgba(255,199,65,.86)';
+        ctx.lineWidth=i===0?3.5:2.5;
+        ctx.beginPath();
+        ctx.moveTo(x,y);
+        ctx.lineTo(x+direction*(14+i*2),y+3);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+    ctx.drawImage(original,0,0,canvas.width,canvas.height);
+    const texture=new THREE.CanvasTexture(canvas);
+    configureCharacterTexture(texture);
+    return texture;
+  });
+}
+
 /** Mirroring only ever changes UVs inside this one isolated frame. */
 export function setCharacterMirror(texture:THREE.CanvasTexture,mirrored:boolean):void{
   texture.repeat.x=mirrored?-1:1;

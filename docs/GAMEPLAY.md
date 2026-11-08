@@ -320,3 +320,13 @@ Le WebP arrière de 72 pixels par pose comportait du bruit de compression et des
 La pose du chat vu de dos est désormais choisie selon la physique verticale : montée (étirement léger), sommet (pattes regroupées), descente et réception amortie (squash). Le comportement est encapsulé dans `catMotion.ts` et testé avec Vitest, avec conservation des textures nettoyées, de la transparence et des animations de profil existantes.
 
 Le chargement du panorama est prêt à utiliser `mediterranean_horizon_hq.jpg` à partir de la **source PNG originale**, sans réencoder l'AVIF très compressé. En attendant l'import du JPEG dans `public/assets/backgrounds/`, un repli sur l'ancien AVIF préserve la scène publiée. Ce point n'est **pas encore terminé** tant que l'asset haute qualité n'est pas dans le dépôt.
+
+
+### v0.17.5 — Boost de vitesse, ombre en saut et terrasses (✅ implémenté)
+
+- Le panorama `mediterranean_horizon_hq.jpg` est désormais présent dans le dépôt et chargé en priorité. Son canevas de rendu est porté à **1536 px** maximum pour les écrans mobiles haute densité, avec recadrage non déformant ; l'ancien AVIF ne reste qu'un repli de chargement.
+- **Boost de profil** : on conserve l'illustration d'origine de l'atlas kawaii (frame 7 avec ses traits jaunes) sans altérer l'animation normale. Des traits jaunes additionnels recyclés, peu coûteux, donnent une impression de vitesse.
+- **Boost vu de dos** : quatre versions distinctes des quatre poses PNG nettoyées sont composées une seule fois dans le navigateur, avec des traits jaunes derrière le chat, puis sélectionnées uniquement pendant le boost de vitesse. L'animation de saut vue de dos reste active pendant le boost.
+- **Ombre** : elle rétrécit continûment jusqu'à environ **75 %** et devient légèrement moins opaque lorsque le chat monte ; la taille revient à 100 % à la réception. Logique pure dans `visualPolish.ts`.
+- **Terrain en contrebas** : la texture `terrace_pavers.webp` n'est plus répétée plusieurs fois à chaque mètre. Les coordonnées UV utilisent désormais une échelle cohérente de **8 mètres par motif**, sans répétition supplémentaire sur le matériau, avec continuité entre les chunks et dans les fossés.
+- Tests de non-régression : limites de l'ombre, animation de profil boost (frame 7), largeur de motif et points de traînée de vitesse dans une courbe. Les sprites de profil non boostés et les poissons restent inchangés.
