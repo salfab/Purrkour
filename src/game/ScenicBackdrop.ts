@@ -20,9 +20,7 @@ export class ScenicBackdrop {
   private readonly cropHeight=.78;
 
   constructor(){
-    this.loader.load(
-      `${import.meta.env.BASE_URL}assets/backgrounds/mediterranean_horizon.avif`,
-      (texture)=>{
+    const applyPanorama=(texture:THREE.Texture):void=>{
         if(this.disposed){texture.dispose();return;}
         this.sourceTexture=texture;
         const image=texture.image as (CanvasImageSource & {width:number;height:number})|undefined;
@@ -68,9 +66,23 @@ export class ScenicBackdrop {
         this.panorama.rotation.y=Math.PI;
         this.panorama.renderOrder=-10;
         this.group.add(this.panorama);
-      },
+    };
+    // Prefer the high-quality JPEG exported from the original 2172×724 PNG.
+    // Until the image is uploaded to GitHub, retain the old AVIF as fallback
+    // to avoid a blank background for anyone opening the live game.
+    this.loader.load(
+      `${import.meta.env.BASE_URL}assets/backgrounds/mediterranean_horizon_hq.jpg`,
+      applyPanorama,
       undefined,
-      ()=>console.warn('Purrkour: horizon indisponible, ciel uni conservé'),
+      ()=>{
+        if(this.disposed)return;
+        this.loader.load(
+          `${import.meta.env.BASE_URL}assets/backgrounds/mediterranean_horizon.avif`,
+          applyPanorama,
+          undefined,
+          ()=>console.warn('Purrkour: horizon unavailable, retaining plain sky'),
+        );
+      },
     );
   }
 

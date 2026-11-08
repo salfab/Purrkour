@@ -138,3 +138,10 @@ La source WebP arrière contient des pixels rouges saturés sous les pattes : un
 ## Atlas arrière nettoyé (v0.17.3)
 
 Le chat de dos utilise désormais `public/assets/character/cat_rear_clean.png` : quatre poses illustrées transparentes de 96×96 px sans parasites rouges sous les pattes. Le chargement en textures indépendantes reste identique. Les profils gauche/droite et les poissons ne sont pas modifiés.
+
+
+## Animation de saut et panorama haute qualité (v0.17.4)
+
+Le chat **vu de dos** joue désormais des poses différentes en montée, au sommet du saut, en descente et à la réception ; les sprites de profil et les poissons ne changent pas. Le module `src/game/catMotion.ts` est purement déterministe et couvert par des tests.
+
+Pour le panorama, `ScenicBackdrop.ts` essaie en priorité `public/assets/backgrounds/mediterranean_horizon_hq.jpg`, une version JPEG haute qualité de l'image source originale 2172×724 (export ciblé 1536×512, qualité 92). **Il faut encore importer ce fichier JPEG dans le dépôt** : en son absence, le jeu se replie sur `mediterranean_horizon.avif` pour ne pas afficher un fond vide. L'ancien AVIF pourra être supprimé une fois le JPEG installé et validé sur téléphone.

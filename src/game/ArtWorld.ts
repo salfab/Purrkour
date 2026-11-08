@@ -5,6 +5,7 @@ import {ROUTE_FORK,activeRoute,type RouteChoice} from './routeChoices';
 import {routePoint,streamedRoadInterval,fakeMergeOverlapsBuilding} from './routeGeometry';
 import {catViewFromLocalX,mirrorProfileForView} from './catView';
 import {isolateCharacterFrames,setCharacterMirror,configureCharacterTexture} from './characterFrames';
+import {catRearPose} from './catMotion';
 
 function canvasTexture(size: number, paint: (ctx: CanvasRenderingContext2D, size: number) => void): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -246,6 +247,8 @@ export class ArtWorld {
   private readonly rearTexture:THREE.CanvasTexture;
   private backView=false;
   private lastMirrored=false;
+  private wasGrounded=true;
+  private lastLandingAt=Number.NEGATIVE_INFINITY;
   private readonly catSprite:THREE.Sprite;
   private readonly shadow:THREE.Mesh<THREE.CircleGeometry,THREE.MeshBasicMaterial>;
   private lastFrame=-1;
@@ -587,6 +590,8 @@ export class ArtWorld {
     this.pickups.clear();
     this.activeRunSeed=seed;
     this.activeRoute=null;
+    this.wasGrounded=true;
+    this.lastLandingAt=Number.NEGATIVE_INFINITY;
   }
 
   /** Reload only future geometry when the player commits to a fork choice. */
@@ -638,13 +643,27 @@ export class ArtWorld {
     const view=catViewFromLocalX(player.x);
     this.shadow.position.y=groundHeight(player.z)-player.y+.025;
     (this.shadow.material as THREE.MeshBasicMaterial).opacity=player.grounded?.3:Math.max(.08,.3-(player.y-groundHeight(player.z))*.055);
-    const frame=player.boost>0?7:!player.grounded?6:Math.floor(player.anim)%6;
+    if(!this.wasGrounded && player.grounded)this.lastLandingAt=player.elapsed;
+    this.wasGrounded=player.grounded;
+    const rear=catRearPose(
+      player.grounded,player.vy,player.anim,player.elapsed-this.lastLandingAt,
+    );
+    const sideFrame=player.boost>0?7:!player.grounded?6:Math.floor(player.anim)%6;
+    // The cleaned rear sheet now has separate takeoff/apex/fall/landing
+    // animations instead of translating a frozen running pose upwards.
+    const frame=view==='rear'?rear.frame:sideFrame;
     // Keep the kawaii sprite's colors; Rush adds a small warm tint only.
     const material=this.catSprite.material as THREE.SpriteMaterial;
     material.color.set(player.rewards.rushRemaining>0?'#fff1bd':'#ffffff');
-    // The existing profile art looks toward screen-right. Left side uses it
-    // unchanged; right side uses precisely the same atlas mirrored in UVs.
     this.drawCat(frame,view==='rear',mirrorProfileForView(view));
+    const isRear=view==='rear';
+    this.catSprite.scale.set(
+      1.9*(isRear?rear.scaleX:1),
+      1.9*(isRear?rear.scaleY:1),
+      1,
+    );
+    this.catSprite.position.y=.85+(isRear?rear.yOffset:0);
+    material.rotation=isRear?rear.tilt:0;
   }
   dispose():void{
     this.resetRun(0);

@@ -159,7 +159,6 @@ export class PurrkourGame {
     }
     this.camera.updateProjectionMatrix();
     this.camera.updateMatrixWorld();
-    this.world.setTurnLean(0);
     this.backdrop.update(
       this.player.z,groundHeight(this.player.z),
       routePose(this.player.z,this.player.routeChoice),

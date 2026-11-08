@@ -313,3 +313,10 @@ Les poissons et objets décoratifs sont déjà des sprites à texture unique ; l
 ### v0.17.3 — Source de dos nettoyée (✅)
 
 Le WebP arrière de 72 pixels par pose comportait du bruit de compression et des pixels colorés autour des pattes. Remplacement par un PNG transparent à quatre poses de 96 × 96 px, extrait de l'illustration originale plus grande, avec marge interne. Le découpage en textures séparées, le filtrage linéaire sans mipmaps et le clamp sont conservés. Les sprites de profil et les poissons ne sont pas modifiés. Tests : dimensions, canal alpha, chargement et chemin d'asset.
+
+
+### v0.17.4 — Animation de saut du chat arrière et fond HQ (partiel)
+
+La pose du chat vu de dos est désormais choisie selon la physique verticale : montée (étirement léger), sommet (pattes regroupées), descente et réception amortie (squash). Le comportement est encapsulé dans `catMotion.ts` et testé avec Vitest, avec conservation des textures nettoyées, de la transparence et des animations de profil existantes.
+
+Le chargement du panorama est prêt à utiliser `mediterranean_horizon_hq.jpg` à partir de la **source PNG originale**, sans réencoder l'AVIF très compressé. En attendant l'import du JPEG dans `public/assets/backgrounds/`, un repli sur l'ancien AVIF préserve la scène publiée. Ce point n'est **pas encore terminé** tant que l'asset haute qualité n'est pas dans le dépôt.
