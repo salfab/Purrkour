@@ -189,3 +189,8 @@ Cette première passe ne remplace pas encore les anciennes fenêtres, portes et 
 Complément à la passe précédente : le jeu utilise maintenant un vrai **troisième atlas PNG avec transparence** contenant deux fenêtres peintes à la main (fleurs et volets bleus) et deux portes méditerranéennes (bleue et bois). Les illustrations sont extraites de la planche de référence illustrée, puis isolées de son fond ivoire et découpées en quatre textures GPU. Leur affichage ne requiert pas de nouveaux volumes coûteux ; les décals légers remplacent les anciens volets et portes simplifiés. L'objectif reste de comparer ce rendu hybride à des bâtiments entièrement dessinés en sprites, si le résultat est encore trop artificiel.
 
 Mode de test rapide : [quartiers tous les 100 mètres](https://salfab.github.io/Purrkour/?districtPreview=1).
+
+
+## v0.18.5 — Comparaison d'une autre texture peinte
+
+Le rendu standard v0.18.4 (atlas de façades, fenêtres, portes, toits) est conservé. Pour comparer une variante basée sur cinq PNG peints haute qualité sans changer la jouabilité, ouvrir [l'essai de crépis peint](https://salfab.github.io/Purrkour/?facadePreview=stucco). Les quatre quartiers défilent tous les 100 m avec [le mode de validation rapide](https://salfab.github.io/Purrkour/?districtPreview=1&facadePreview=stucco). Le code charge ces matériaux à la demande uniquement dans le mode expérimental.

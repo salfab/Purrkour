@@ -458,3 +458,12 @@ Une troisième planche **`openings_painted_v1.png` (256×256 RGBA)** contient de
 Les fenêtres et portes utilisent désormais des plans 2.5D avec matériaux partagés : les volets dessinés remplacent les anciens blocs 3D collés de part et d'autre des fenêtres. Les balcons, auvents et autres volumes non peints restent de vrais éléments de décor en 3D. La structure des bâtiments, les collisions et les obstacles restent inchangés.
 
 **Critère de passage à l'alternative :** après comparaison réelle à partir de captures du téléphone, si les maisons semblent toujours constituées de volumes avec des autocollants plutôt que de façades illustrées, privilégier une façade complète en sprite (une image par archétype et quartier), et conserver uniquement les surfaces nécessaires à Griffe comme éléments 3D interactifs. Il ne s'agit pas encore de construire ces sprites complets dans cette version.
+
+
+### v0.18.5 — Comparaison A/B de textures peintes, sans remplacer le pack v0.18.4
+
+Un second ensemble de **cinq textures PNG 512×512** a été ajouté dans `public/assets/architecture/` : crépis crème, pêche, ocre et rose, plus des tuiles terre cuite. Les quatre crépis dérivent d'une **illustration originale haute résolution** avec craquelures et variations peintes, recolorisée puis rendue répétable ; les tuiles sont retravaillées à partir du précédent atlas illustré.
+
+**Pour l'essayer :** ouvrir `?facadePreview=stucco`, et éventuellement `?districtPreview=1&facadePreview=stucco` pour changer de quartier tous les 100 m. Cette variante remplace seulement les maps de crépi et de toiture : les fenêtres, portes, volumes des bâtiments, collisions, poissons et autres systèmes de gameplay ne changent pas. La version normale conserve les atlas illustrés de la **v0.18.4**, ce qui permet de comparer à partir des mêmes conditions et de revenir en arrière instantanément.
+
+Les textures alternatives sont chargées avec `RepeatWrapping` et des mipmaps. Elles n'utilisent ni transparence détourée ni compression AVIF/WebP destructrice. Si la nouvelle version reste trop artificielle, l'alternative de façades entièrement dessinées sur sprites avec éléments interactifs 3D pourra être évaluée sur captures mobiles.

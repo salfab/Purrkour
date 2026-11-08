@@ -3,6 +3,7 @@ import {
   DISTRICTS,type HouseProfile,type DistrictKey,
 } from './districts';
 import {atlasCells,facadeTileIndices,roofTileIndex} from './paintedFacadeAtlas';
+import {PAINTED_STUCCO_PREVIEW,previewWallFiles,isPaintedStuccoPreview} from './paintedStuccoPreview';
 
 export interface DistrictMaterialSources{
   readonly cream:THREE.MeshLambertMaterial;
@@ -146,6 +147,9 @@ export class DistrictBuildings{
   loadPaintedTextures():void{
     const loader=new THREE.TextureLoader();
     const base=`${import.meta.env.BASE_URL}assets/textures/`;
+    const useAlternative=isPaintedStuccoPreview(
+      typeof window==='undefined'?'':window.location.search,
+    );
     const load=(
       filename:string,columns:number,rows:number,
       ready:(tiles:readonly THREE.CanvasTexture[])=>void,
@@ -192,7 +196,7 @@ export class DistrictBuildings{
       );
     };
 
-    load('facades_painted_v1.png',2,2,tiles=>{
+    if(!useAlternative)load('facades_painted_v1.png',2,2,tiles=>{
       this.paintedFacadesReady=true;
       for(const [key,pair] of this.facade){
         const indexes=facadeTileIndices(key);
@@ -215,7 +219,7 @@ export class DistrictBuildings{
         material.needsUpdate=true;
       }
     });
-    load('roofs_painted_v1.png',2,1,tiles=>{
+    if(!useAlternative)load('roofs_painted_v1.png',2,1,tiles=>{
       this.paintedRoofsReady=true;
       for(const [key,material] of this.roofs){
         material.map=tiles[roofTileIndex(key)]!;
@@ -223,6 +227,59 @@ export class DistrictBuildings{
         material.needsUpdate=true;
       }
     });
+
+    if(useAlternative){
+      // Non-destructive A/B comparison. These 512 px painterly textures come
+      // from the original hand-painted stucco art, not the compressed legacy
+      // WebP. The normal v0.18.4 atlases remain untouched by this URL switch.
+      const assets=`${import.meta.env.BASE_URL}assets/architecture/`;
+      const available=new Map<string,THREE.Texture>();
+      const loadOne=(filename:string):void=>{
+        loader.load(assets+filename,texture=>{
+          if(this.disposed){texture.dispose();return;}
+          texture.colorSpace=THREE.SRGBColorSpace;
+          texture.wrapS=THREE.RepeatWrapping;
+          texture.wrapT=THREE.RepeatWrapping;
+          texture.generateMipmaps=true;
+          texture.minFilter=THREE.LinearMipmapLinearFilter;
+          texture.magFilter=THREE.LinearFilter;
+          texture.anisotropy=2;
+          texture.needsUpdate=true;
+          this.textures.push(texture);
+          available.set(filename,texture);
+
+          for(const [key,pair] of this.facade){
+            const files=previewWallFiles(key);
+            for(let i=0;i<2;i++){
+              const t=available.get(files[i]!);
+              if(!t)continue;
+              const material=pair[i]!;
+              material.map=t;
+              // The painted colors already encode the warmth of the plaster.
+              // Avoid multiplying them by another strong district color.
+              material.color.set(key==='twilight'?'#ded5ec'
+                :key==='gardens'?'#e8faea':'#ffffff');
+              material.needsUpdate=true;
+            }
+          }
+          if(filename===PAINTED_STUCCO_PREVIEW.roof){
+            for(const [key,material] of this.roofs){
+              material.map=texture;
+              material.color.set(key==='twilight'?'#b9b7d4':'#ffffff');
+              material.needsUpdate=true;
+            }
+          }
+        },undefined,()=>console.warn('Purrkour: alternative facade unavailable',filename));
+      };
+      // Do not let late legacy texture loads override this comparison.
+      this.paintedFacadesReady=true;
+      this.paintedRoofsReady=true;
+      const all=new Set<string>([PAINTED_STUCCO_PREVIEW.roof]);
+      for(const d of DISTRICTS)for(const filename of previewWallFiles(d.key)){
+        all.add(filename);
+      }
+      for(const filename of all)loadOne(filename);
+    }
   }
 
   /**
