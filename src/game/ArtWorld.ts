@@ -307,6 +307,9 @@ export class ArtWorld {
       window:this.wallPropMaterials.window,banner:this.wallPropMaterials.banner,
       flower:this.propMaterials.flower,
     });
+    // Real raster paintings from the original generated hand-painted asset
+    // study. They replace only the wall/roof maps; geometry stays unchanged.
+    this.districtBuildings.loadPaintedTextures();
     this.catCanvas=document.createElement('canvas');
     this.catCanvas.width=128;this.catCanvas.height=128;
     this.catTexture=new THREE.CanvasTexture(this.catCanvas);
