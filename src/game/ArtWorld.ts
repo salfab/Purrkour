@@ -4,6 +4,7 @@ import { gapEdgesInRange } from './backdropMath';
 import {ROUTE_FORK,activeRoute,type RouteChoice} from './routeChoices';
 import {routePoint,streamedRoadInterval,fakeMergeOverlapsBuilding} from './routeGeometry';
 import {catViewFromLocalX,mirrorProfileForView} from './catView';
+import {isolateCharacterFrames,setCharacterMirror,configureCharacterTexture} from './characterFrames';
 
 function canvasTexture(size: number, paint: (ctx: CanvasRenderingContext2D, size: number) => void): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -237,8 +238,10 @@ export class ArtWorld {
   private readonly wallPropMaterials:{window:THREE.MeshBasicMaterial;banner:THREE.MeshBasicMaterial};
   private readonly catAtlas:THREE.Texture;
   private catAtlasReady=false;
+  private catFrames:THREE.CanvasTexture[]=[];
   private readonly rearAtlas:THREE.Texture;
   private rearAtlasReady=false;
+  private rearFrames:THREE.CanvasTexture[]=[];
   private readonly catCanvas:HTMLCanvasElement;
   private readonly catTexture:THREE.CanvasTexture;
   private readonly rearCanvas:HTMLCanvasElement;
@@ -289,12 +292,12 @@ export class ArtWorld {
     this.catCanvas=document.createElement('canvas');
     this.catCanvas.width=128;this.catCanvas.height=128;
     this.catTexture=new THREE.CanvasTexture(this.catCanvas);
-    this.catTexture.colorSpace=THREE.SRGBColorSpace;
+    configureCharacterTexture(this.catTexture);
     this.textures.push(this.catTexture);
     this.rearCanvas=document.createElement('canvas');
     this.rearCanvas.width=128;this.rearCanvas.height=128;
     this.rearTexture=new THREE.CanvasTexture(this.rearCanvas);
-    this.rearTexture.colorSpace=THREE.SRGBColorSpace;
+    configureCharacterTexture(this.rearTexture);
     this.textures.push(this.rearTexture);
     const catMaterial=new THREE.SpriteMaterial({map:this.catTexture,transparent:true,alphaTest:.025,depthWrite:false});
     this.materials.push(catMaterial);
@@ -309,20 +312,25 @@ export class ArtWorld {
     const atlas=new THREE.TextureLoader().load(
       `${import.meta.env.BASE_URL}assets/character/cat_atlas.png`,
       loaded=>{
-        loaded.colorSpace=THREE.SRGBColorSpace;
-        loaded.wrapS=THREE.RepeatWrapping;
-        loaded.wrapT=THREE.RepeatWrapping;
-        loaded.repeat.set(.25,.5);
-        this.catAtlasReady=true;
-        this.lastFrame=-1;
-        this.drawCat(0,this.backView);
+        try{
+          this.catFrames=isolateCharacterFrames(loaded.image as HTMLImageElement,4,2,'side');
+          this.textures.push(...this.catFrames);
+          this.catAtlasReady=this.catFrames.length===8;
+          this.lastFrame=-1;
+          this.drawCat(0,this.backView,this.lastMirrored);
+        }catch(error){
+          console.warn('Purrkour: side cat frame fallback',error);
+        }
       },
       undefined,
       ()=>console.warn('Purrkour: kawaii cat atlas unavailable; using fallback'),
     );
     atlas.colorSpace=THREE.SRGBColorSpace;
+    atlas.generateMipmaps=false;
+    atlas.wrapS=THREE.ClampToEdgeWrapping;
+    atlas.wrapT=THREE.ClampToEdgeWrapping;
     atlas.magFilter=THREE.LinearFilter;
-    atlas.minFilter=THREE.LinearMipmapLinearFilter;
+    atlas.minFilter=THREE.LinearFilter;
     this.catAtlas=atlas;
     this.textures.push(atlas);
 
@@ -331,21 +339,23 @@ export class ArtWorld {
     const rearAtlas=new THREE.TextureLoader().load(
       `${import.meta.env.BASE_URL}assets/character/cat_rear_strip.webp`,
       loaded=>{
-        loaded.colorSpace=THREE.SRGBColorSpace;
-        loaded.wrapS=THREE.RepeatWrapping;
-        loaded.wrapT=THREE.ClampToEdgeWrapping;
-        loaded.repeat.set(.25,1);
-        this.rearAtlasReady=true;
-        this.lastFrame=-1;
-        this.drawCat(0,this.backView,this.lastMirrored);
+        try{
+          // Original WebP contains stray saturated red pixels below the paws.
+          this.rearFrames=isolateCharacterFrames(loaded.image as HTMLImageElement,4,1,'rear');
+          this.textures.push(...this.rearFrames);
+          this.rearAtlasReady=this.rearFrames.length===4;
+          this.lastFrame=-1;
+          this.drawCat(0,this.backView,this.lastMirrored);
+        }catch(error){
+          console.warn('Purrkour: rear cat frame fallback',error);
+        }
       },
       undefined,
       ()=>console.warn('Purrkour: rear kawaii atlas unavailable; using Canvas fallback'),
     );
     rearAtlas.colorSpace=THREE.SRGBColorSpace;
-    rearAtlas.wrapS=THREE.RepeatWrapping;
+    rearAtlas.wrapS=THREE.ClampToEdgeWrapping;
     rearAtlas.wrapT=THREE.ClampToEdgeWrapping;
-    rearAtlas.repeat.set(.25,1);
     rearAtlas.generateMipmaps=false;
     rearAtlas.magFilter=THREE.LinearFilter;
     rearAtlas.minFilter=THREE.LinearFilter;
@@ -384,13 +394,14 @@ export class ArtWorld {
     if(back){
       this.catSprite.scale.x=1.9;
       if(this.rearAtlasReady){
-        // Four transparent frames in a single horizontal row.
-        this.rearAtlas.offset.set((index%4)*.25,0);
-        if(material.map!==this.rearAtlas){
-          material.map=this.rearAtlas;
-          material.needsUpdate=true;
+        const frame=this.rearFrames[index%4];
+        if(frame){
+          if(material.map!==frame){
+            material.map=frame;
+            material.needsUpdate=true;
+          }
+          return;
         }
-        return;
       }
       const ctx=this.rearCanvas.getContext('2d');
       if(!ctx)return;
@@ -404,20 +415,16 @@ export class ArtWorld {
     }
 
     if(this.catAtlasReady){
-      // UV mirroring avoids negative sprite scales, which can reverse triangle
-      // winding/culling. Same illustrated sprites are shared on both sides.
-      const cell=index%4;
-      this.catAtlas.repeat.set(mirrored?-.25:.25,.5);
-      this.catAtlas.offset.set(
-        (cell+(mirrored?1:0))*.25,
-        1-(Math.floor(index/4)+1)*.5,
-      );
-      this.catSprite.scale.x=1.9;
-      if(material.map!==this.catAtlas){
-        material.map=this.catAtlas;
-        material.needsUpdate=true;
+      const frame=this.catFrames[index%8];
+      if(frame){
+        setCharacterMirror(frame,mirrored);
+        this.catSprite.scale.x=1.9;
+        if(material.map!==frame){
+          material.map=frame;
+          material.needsUpdate=true;
+        }
+        return;
       }
-      return;
     }
 
     const ctx=this.catCanvas.getContext('2d');
