@@ -79,6 +79,24 @@ export class PurrkourGame {
     this.resizeObserver.observe(canvas);
     this.resize(canvas);
     document.addEventListener('visibilitychange',this.visibility);
+    // Snapshot mode for automated REAL WebGL screenshots. Never changes
+    // ordinary runs or grants any reward. The run is frozen at a chosen
+    // distance and only enabled with an explicit query parameter.
+    const shot=new URLSearchParams(window.location.search).get('artShot');
+    if(shot!==null&&Number.isFinite(Number(shot))){
+      const distance=Math.max(0,Math.min(6000,Number(shot)));
+      this.player=makePlayer(813);
+      this.player.z=distance;
+      this.player.y=groundHeight(distance);
+      this.player.grounded=true;
+      if(distance>=250){
+        this.player.routeChoice='fish';
+        this.player.routeChosenAt=0;
+      }
+      this.world.resetRun(this.player.runSeed);
+      this.mode='paused';
+      this.controls.setEnabled(false);
+    }
     this.publish();
     this.frameId=requestAnimationFrame(this.frame);
   }
