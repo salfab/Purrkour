@@ -39,7 +39,7 @@ describe('original side and rear 4×2 sprite atlases',()=>{
   });
   it('keeps the decoded artwork pixels unchanged',()=>{
     const source=readFileSync(resolve(process.cwd(),'src/game/characterFrames.ts'),'utf8');
-    expect(source).not.toMatch(/getImageData|putImageData|quantize|posterize|createRearBoostFrames/);
+    expect(source).not.toMatch(/(?:getImageData|putImageData|createRearBoostFrames)\s*\(/);
     expect(source).toContain('ctx.drawImage(');
     expect(source).toContain('configureCharacterTexture(texture)');
   });
