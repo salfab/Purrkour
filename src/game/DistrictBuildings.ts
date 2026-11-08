@@ -289,7 +289,7 @@ export class DistrictBuildings{
   }
 
   add(group:THREE.Group,p:HouseProfile,floor:number):void{
-    const {district,side,z,width,height,depth,archetype:kind}=p;
+    const {district,side,z,height,depth,archetype:kind}=p;
     const id=district.key;
     const base=floor-1.8;
     const {inner,mainTop}=this.architecture(group,p,base);
