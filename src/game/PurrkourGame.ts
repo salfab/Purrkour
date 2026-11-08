@@ -8,6 +8,7 @@ import {forkStage} from './routeChoices';
 import {routePose} from './routeGeometry';
 import {cameraBlendFactor,frameRouteCamera} from './routeCamera';
 import {comboMultiplier} from './rewards';
+import {RushEffects} from './RushEffects';
 
 export type UpdateListener = (snapshot: Snapshot) => void;
 
@@ -27,6 +28,7 @@ export class PurrkourGame {
   private readonly scene=new THREE.Scene();
   private readonly backdrop=new ScenicBackdrop();
   private readonly world=new ArtWorld();
+  private readonly rushEffects=new RushEffects();
   private readonly fork=new RouteForkView({pavement:this.world.forkPavementMaterial,curb:this.world.forkCurbMaterial});
   private readonly controls: ThumbControls;
   private readonly music:HTMLAudioElement;
@@ -58,7 +60,7 @@ export class PurrkourGame {
     this.scene.add(new THREE.HemisphereLight('#ffffff','#bc9e91',2.1));
     const sunlight=new THREE.DirectionalLight('#fff3d6',2.4);
     sunlight.position.set(-7,15,-10);this.scene.add(sunlight);
-    this.scene.add(this.backdrop.group,this.world.group,this.fork.group,this.world.cat);
+    this.scene.add(this.backdrop.group,this.world.group,this.fork.group,this.rushEffects.group,this.world.cat);
     this.music=new Audio(`${import.meta.env.BASE_URL}assets/audio/soundtrack_1.mp3`);
     this.music.loop=true;
     this.music.preload='auto';
@@ -137,6 +139,7 @@ export class PurrkourGame {
       if(this.hudTimer>.10){this.hudTimer=0;this.publish();}
     }
     this.world.update(this.player,this.collected);
+    this.rushEffects.update(this.player,this.mode==='running');
     this.fork.update(this.player.routeChoice,this.player.elapsed,this.player.z);
     frameRouteCamera(
       this.desiredCamera,this.player.z,this.player.routeChoice,this.pitch,
@@ -195,6 +198,6 @@ export class PurrkourGame {
     document.removeEventListener('visibilitychange',this.visibility);
     this.resizeObserver.disconnect();this.controls.dispose();
     this.music.pause();this.music.removeAttribute('src');this.music.load();
-    this.world.dispose();this.fork.dispose();this.backdrop.dispose();this.renderer.dispose();
+    this.world.dispose();this.rushEffects.dispose();this.fork.dispose();this.backdrop.dispose();this.renderer.dispose();
   }
 }

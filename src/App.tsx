@@ -51,6 +51,13 @@ export function App() {
         <button type="button" className="icon-btn" aria-label="Mettre le jeu en pause" disabled={!running} onClick={()=>game.current?.pause()}>Ⅱ</button>
       </div>
     </header>
+    {running&&status.rush>0&&(
+      <div className="rush-screen" aria-hidden="true">
+        <div className="rush-screen__left"/>
+        <div className="rush-screen__right"/>
+        <div className="rush-screen__footer">⚡ PURR RUSH · ×2 POINTS · AIMANT 🐟</div>
+      </div>
+    )}
     {running&&<div className={status.rush>0?'instinct-bar instinct-bar--rush':'instinct-bar'}
       aria-label={status.rush>0?'Purr Rush actif':'Jauge d’instinct'}>
       <div className="instinct-bar__label">
@@ -64,7 +71,7 @@ export function App() {
       </div>}
     </div>}
     {running&&status.rewardFeedback!=='none'&&(
-      <div className={status.rewardFeedback==='perfect'?'reward-flash reward-flash--perfect':'reward-flash'}>
+      <div className={status.rewardFeedback==='perfect'?'reward-flash reward-flash--perfect':'reward-flash reward-flash--rush'}>
         {status.rewardFeedback==='perfect'
           ?'✨ PURRFECT ! +'+status.lastComboBonus
           :'⚡ PURR RUSH !'}
@@ -91,7 +98,7 @@ export function App() {
     </div>}
     {!running&&<section className="overlay">
       <div className="dialog">
-        <div className="eyebrow">PURRKOUR · V0.17 · MOBILE FIRST</div>
+        <div className="eyebrow">PURRKOUR · V0.17.1 · MOBILE FIRST</div>
         <h1>Purrkour 🐈</h1>
         {error&&<p className="error">Impossible de démarrer le jeu : {error}</p>}
         {!error&&status.mode==='menu'&&<>
@@ -128,7 +135,7 @@ export function App() {
           </div>
           <button type="button" onClick={()=>game.current?.start()}>Rejouer</button>
         </>}
-        <p>Prototype mobile v0.17 · Instinct félin, Purr Rush et combos.</p>
+        <p>Prototype mobile v0.17.1 · Retour visuel Purr Rush renforcé.</p>
       </div>
     </section>}
   </main>;

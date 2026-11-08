@@ -121,3 +121,8 @@ Les façades sont désormais filtrées contre la **géométrie réelle du raccor
 Les poissons remplissent une **jauge d'Instinct**, qui déclenche automatiquement **Purr Rush** (aimant sur les poissons bleus et double score temporaire). Un combo **rebond → doré haut → réception** rapporte un bonus PURRFECT et augmente le multiplicateur de score. Le module pur `src/game/rewards.ts` porte ces règles, testées par Vitest ; la documentation complète des prochaines étapes (pigeons, chariots, missions, boutique et roguelite) est dans [docs/GAMEPLAY.md](docs/GAMEPLAY.md).
 
 Les poissons de la réserve persistante **ne sont pas encore dépensables** : la boutique est prévue pour la v0.19.
+
+
+## Retour visuel Purr Rush (v0.17.1)
+
+Le pouvoir se voit désormais **sur le chat lui-même** : halo, impulsion dorée et étincelles de traînée, en plus d'un contour lumineux discret de l'écran. Le centre de la piste reste visible. La traînée suit même les embranchements courbes. Deux petites textures Canvas et des sprites recyclés limitent l'usage GPU ; aucun modèle 3D supplémentaire. Les effets sont testés dans `tests/rushVisualState.test.ts`.

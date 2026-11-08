@@ -294,3 +294,10 @@ Mesurer durée moyenne de run, proportion de joueurs obtenant un Rush, fréquenc
 Chaque modification significative doit inclure des tests **Vitest** des règles déterministes pures dans `src/game/`, plus des **tests d'intégration de simulation** pour les collisions, rebonds, collectibles, choix de route et score. Tests existants de caméra et de géométrie à conserver. Le pipeline GitHub Actions exécute **TypeScript strict → Vitest → Vite build → GitHub Pages** et le déploiement n'est déclaré réussi que si le workflow complet réussit.
 
 Les tests automatisés **ne prouvent pas** la qualité perceptive sur mobile : cadrage, animation, contraste, sensation de risque, musique et ergonomie doivent toujours faire l'objet de tests réels.
+
+
+### v0.17.1 — Effets visuels de Purr Rush (✅ ajoutés)
+
+Retour d'usage : une jauge et une légère teinte du chat ne suffisent pas à rendre le Rush perceptible pendant le gameplay. Ajout d'une aura dorée persistante et d'une impulsion de déclenchement autour du chat, plus une traînée de 14 étincelles suivant la trajectoire réelle (même pendant le détour en Y). Un vignettage discret sur les bords, de petites lignes de vitesse et une bannière « ×2 POINTS / AIMANT » sont affichés uniquement pendant le Rush. Aucune modification de la physique, du cadrage ou de l'économie des poissons.
+
+Implémentation : `src/game/RushEffects.ts` utilise deux textures Canvas réutilisées et 16 sprites mis à jour sans allocations géométriques par frame, pour limiter le coût sur mobile. Le module pur `rushVisualState.ts` fournit l'état du déclenchement, de l'aura et des traînées ; des tests Vitest vérifient leur durée, le masquage pendant la pause et le suivi des routes courbes. Les animations CSS sont coupées par `prefers-reduced-motion`.
