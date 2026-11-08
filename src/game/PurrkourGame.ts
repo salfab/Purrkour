@@ -26,6 +26,7 @@ export class PurrkourGame {
   private readonly camera=new THREE.PerspectiveCamera(64,1,.1,180);
   private readonly desiredCamera=new THREE.PerspectiveCamera(64,1,.1,180);
   private cameraInitialized=false;
+  private artShot=false;
   private readonly scene=new THREE.Scene();
   private readonly skyColors=DISTRICTS.map(d=>new THREE.Color(d.sky));
   private readonly fogColors=DISTRICTS.map(d=>new THREE.Color(d.fog));
@@ -94,7 +95,8 @@ export class PurrkourGame {
         this.player.routeChosenAt=0;
       }
       this.world.resetRun(this.player.runSeed);
-      this.mode='paused';
+      this.mode='running';
+      this.artShot=true;
       this.controls.setEnabled(false);
     }
     this.publish();
@@ -153,7 +155,7 @@ export class PurrkourGame {
     if(this.disposed)return;
     const dt=this.last?Math.min(.05,(time-this.last)/1000):0;
     this.last=time;
-    if(this.mode==='running'){
+    if(this.mode==='running'&&!this.artShot){
       this.accumulator=Math.min(.08,this.accumulator+dt);
       for(let i=0;i<10&&this.accumulator>=1/120;i++){
         simulate(this.player,this.controls.state,this.collected,1/120);
