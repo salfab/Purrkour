@@ -10,8 +10,9 @@ import {terraceQuadUV,trackQuadUV,jumpShadowAppearance,profileFrame} from './vis
 import {movingObstaclesNear,type MovingObstacle} from './movingObstacles';
 import {MovingObstacleArt} from './MovingObstacleArt';
 import {DistrictBuildings} from './DistrictBuildings';
-import {houseProfilesForChunk} from './districts';
+import {houseProfile,houseProfilesForChunk} from './districts';
 import {IllustratedHouseArt,housePreviewMode} from './IllustratedHouseArt';
+import {PrototypeHouseArt,isVolumeStreet} from './PrototypeHouseArt';
 
 function canvasTexture(size: number, paint: (ctx: CanvasRenderingContext2D, size: number) => void): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -247,6 +248,7 @@ export class ArtWorld {
   private readonly wallPropMaterials:{window:THREE.MeshBasicMaterial;banner:THREE.MeshBasicMaterial};
   private readonly districtBuildings:DistrictBuildings;
   private readonly illustratedBuildings:IllustratedHouseArt;
+  private readonly prototypeHouse:PrototypeHouseArt|null;
   private catAtlasReady=false;
   private catFrames:THREE.CanvasTexture[]=[];
   private rearAtlasReady=false;
@@ -317,6 +319,8 @@ export class ArtWorld {
     this.illustratedBuildings=new IllustratedHouseArt(
       housePreviewMode(typeof window==='undefined'?'':window.location.search),
     );
+    this.prototypeHouse=isVolumeStreet(typeof window==='undefined'?'':window.location.search)
+      ?new PrototypeHouseArt():null;
     this.catCanvas=document.createElement('canvas');
     this.catCanvas.width=128;this.catCanvas.height=128;
     this.catTexture=new THREE.CanvasTexture(this.catCanvas);
@@ -567,16 +571,26 @@ export class ArtWorld {
       group.add(object);
       this.movingViews.set(obstacle.id,{object,obstacle});
     }
-    // A denser but staggered town: mostly one modest facade per 12 m,
-    // with deliberate courtyards and occasional smaller buildings opposite.
-    // Never place any facade over the playable Y or the fake 45° merge.
-    for(const house of houseProfilesForChunk(index,runSeed)){
+    // Illustrated frontages line both sides; the modular comparison keeps
+    // its original staggered plots. Leave the fake merge clear in both modes.
+    const sprites=this.illustratedBuildings.useSprite(index);
+    const houses=sprites && index>=0
+      ? ([-1,1] as const).map(side=>houseProfile(index,runSeed,side,index*12+6))
+      : houseProfilesForChunk(index,runSeed);
+    for(const house of houses){
       if(house.z<visualStart||house.z>=visualEnd)continue;
+      // Small courtyards interrupt the row, staggered on opposite sides.
+      if(this.prototypeHouse&&(index+(house.side===1?2:0))%7===0)continue;
       if(fakeMergeOverlapsBuilding(
-        house.z,house.centerX,route,
-        house.width/2+.90,house.depth/2+.48,
+        house.z,this.prototypeHouse?house.side*7.05:sprites?house.side*5.15:house.centerX,route,
+        this.prototypeHouse?2.5:sprites ? .3 : house.width/2+.90,
+        this.prototypeHouse?5.5:sprites ? 7.6 : house.depth/2+.48,
       ))continue;
-      if(this.illustratedBuildings.useSprite(index)){
+      if(this.prototypeHouse){
+        this.prototypeHouse.add(group,house.z,groundHeight(house.z),house.side,index+(house.side===1?1:0));
+        continue;
+      }
+      if(sprites){
         this.illustratedBuildings.add(group,house,groundHeight(house.z));
       }else{
         this.districtBuildings.add(group,house,groundHeight(house.z));
@@ -603,7 +617,7 @@ export class ArtWorld {
       }else{
         const point=routePoint(obj.position.z,obj.position.x,route);
         obj.position.set(point.x,obj.position.y,point.z);
-        if(obj instanceof THREE.Mesh)obj.rotation.y+=point.yaw;
+        if(obj instanceof THREE.Mesh||obj instanceof THREE.Group)obj.rotation.y+=point.yaw;
       }
     }
   }
@@ -708,6 +722,7 @@ export class ArtWorld {
     this.resetRun(0);
     this.shadow.geometry.dispose();
     this.illustratedBuildings.dispose();
+    this.prototypeHouse?.dispose();
     this.districtBuildings.dispose();
     this.movingArt.dispose();
     this.materials.forEach(m=>m.dispose());

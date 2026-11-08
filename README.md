@@ -23,6 +23,38 @@ pnpm install
 pnpm dev
 ```
 
+Pour inspecter le rendu sans jouer, le paramètre `artShot` fige une scène à
+une distance donnée, par exemple `http://127.0.0.1:5173/?districtPreview=1&artShot=50`.
+Avec le serveur local lancé sur le port 4173, le script de capture peut enregistrer
+les quatre quartiers en format mobile dans `screenshots/illustrated-facade-test/` :
+
+```powershell
+$env:PURRKOUR_CAPTURE_URL = 'http://127.0.0.1:4173/'
+# Facultatif si le navigateur Playwright n'est pas installé :
+$env:PURRKOUR_BROWSER_PATH = 'C:\Program Files\Google\Chrome\Application\chrome.exe'
+node scripts/capture-art.mjs
+```
+
+### Maison témoin en volume
+
+Avec le serveur de développement local (port 4173 dans ces exemples) :
+
+- `http://127.0.0.1:4173/house-study.html` ouvre la même maison dans une vue
+  interactive : glisser pour tourner autour, utiliser la molette pour zoomer.
+  Cette page d'inspection est destinée au serveur de développement.
+- `http://127.0.0.1:4173/?housePreview=volume&artShot=48` montre les maisons
+  dans le jeu à une distance fixe. Leurs façades et hauteurs varient ; des
+  cours ouvertes permettent de voir leurs murs latéraux.
+- `http://127.0.0.1:4173/?housePreview=sprites&artShot=48` permet de comparer
+  avec les plans illustrés, depuis la même caméra.
+
+Après avoir réglé les variables de capture ci-dessus,
+`node scripts/capture-art.mjs --house` enregistre les vues de face et de trois
+quarts, puis trois positions de caméra dans les deux modes, sous
+`screenshots/volume-house-test/`. La façade et les tuiles sont deux textures
+peintes distinctes ; l'auvent et la toiture sont de vraies surfaces 3D. Cette
+maisons restent décoratives et ne possèdent pas de collisions de gameplay.
+
 ## Contrôles
 
 - En bas de l'écran, **maintenir et glisser** le pouce pour choisir une position latérale.
@@ -41,7 +73,7 @@ pnpm dev
 
 ## État du prototype
 
-Le prototype utilise désormais le spritesheet kawaii original, des textures peintes compressées et la bande-son originale. Des matériaux procéduraux restent disponibles comme solutions de repli. Le gameplay est encore basé sur des séquences déterministes répétées, avant la mise en place du directeur de patterns.
+Le prototype utilise les sprites du chat, des textures peintes et la bande-son originale. Un premier directeur choisit des patterns déterministes, avec des positions encore fixes par segment ; l'adaptation des vagues de tension au temps de réaction reste à développer.
 
 Les poissons récoltés s'ajoutent à une réserve locale en fin de run. Le système de déverrouillage permanent reste à développer.
 
@@ -210,3 +242,7 @@ Les quatre fichiers lossless WebP RGBA de `public/assets/illustrated-houses` pro
 - [Alterner les deux approches](https://salfab.github.io/Purrkour/?districtPreview=1&housePreview=compare)
 
 Ce sont des **premiers sprites de référence**, un bâtiment par quartier. Leur répétition et leurs silhouettes doivent encore être validées sur téléphone avant de produire davantage de variantes. Le script de capture Chromium n'est pas nécessaire pour tester cette version et reste séparé du déploiement normal.
+
+## v0.18.8 — Maisons illustrées en volume
+
+La rue utilise par défaut trois variantes de maisons espacées, avec des façades peintes sur leurs murs donnant sur la rue et sur leurs murs de bout, des toits en relief et des auvents. Les bâtiments sont décoratifs et laissent la piste dégagée. Les trois variantes partagent pour l'instant le même style de quartier ; la différenciation des quatre quartiers et la validation sur téléphone restent à faire.

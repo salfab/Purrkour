@@ -1,0 +1,178 @@
+import * as THREE from 'three';
+
+/** Shared decorative house kit, used by default and in the volume preview. */
+export const PROTOTYPE_HOUSE={
+  chunk:5,side:-1,front:5.15,width:10.2,height:6.8,depth:3.8,
+  roofRise:1.25,awningProjection:1.2,
+} as const;
+
+export function isVolumeHousePreview(query:string):boolean{
+  return new URLSearchParams(query).get('housePreview')==='volume';
+}
+export function isVolumeStreet(query:string):boolean{
+  const value=new URLSearchParams(query).get('housePreview');
+  return value===null||value==='volume';
+}
+
+export class PrototypeHouseArt{
+  private readonly box=new THREE.BoxGeometry(1,1,1);
+  private readonly plane=new THREE.PlaneGeometry(1,1);
+  private readonly textures:THREE.Texture[]=[];
+  private readonly facade=new THREE.MeshBasicMaterial({color:'#ffffff'});
+  private readonly facades=[this.facade,new THREE.MeshBasicMaterial(),new THREE.MeshBasicMaterial()];
+  private readonly endFacades=[new THREE.MeshBasicMaterial(),new THREE.MeshBasicMaterial(),new THREE.MeshBasicMaterial()];
+  private readonly wall=new THREE.MeshBasicMaterial({color:'#e8c7b2'});
+  private readonly roof=new THREE.MeshBasicMaterial({color:'#ffffff',side:THREE.DoubleSide});
+  private readonly trim=new THREE.MeshBasicMaterial({color:'#f0d3ad'});
+  private readonly wood=new THREE.MeshBasicMaterial({color:'#866449'});
+  private readonly cloth=new THREE.MeshBasicMaterial({side:THREE.DoubleSide});
+  private readonly geometries:THREE.BufferGeometry[]=[this.box,this.plane];
+  private template:THREE.Group|null=null;
+  private disposed=false;
+
+  constructor(){void this.load();}
+
+  private async load():Promise<void>{
+    const base=`${import.meta.env.BASE_URL}assets/`;
+    const loader=new THREE.TextureLoader();
+    try{
+      const sources:readonly [string,THREE.MeshBasicMaterial,boolean][]=[
+        ['illustrated-houses/prototype-facade-v1.png',this.facade,false],
+        ['illustrated-houses/prototype-facade-v2.png',this.facades[1]!,false],
+        ['illustrated-houses/prototype-facade-v3.png',this.facades[2]!,false],
+        ['architecture/stucco_peach_painted.png',this.wall,true],
+        ['illustrated-houses/prototype-roof-v1.png',this.roof,true],
+        ['illustrated-houses/prototype-end-v1.png',this.endFacades[0]!,false],
+        ['illustrated-houses/prototype-end-v2.png',this.endFacades[1]!,false],
+        ['illustrated-houses/prototype-end-v3.png',this.endFacades[2]!,false],
+      ];
+      await Promise.all(sources.map(async ([file,material,tiled])=>{
+        const texture=await loader.loadAsync(base+file);
+        if(this.disposed){texture.dispose();return;}
+        texture.colorSpace=THREE.SRGBColorSpace;
+        texture.anisotropy=4;
+        if(tiled){
+          texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+          texture.repeat.set(material===this.roof ? 2 : 1.5,material===this.roof ? .8 : 2);
+        }
+        this.textures.push(texture);
+        material.map=texture;material.needsUpdate=true;
+      }));
+      if(!this.disposed)document.documentElement.dataset.volumeHouseReady='true';
+    }catch(error){
+      if(!this.disposed)document.documentElement.dataset.volumeHouseReady='error';
+      console.warn('Purrkour: prototype house textures unavailable',error);
+    }
+  }
+
+  private mesh(group:THREE.Group,geometry:THREE.BufferGeometry,material:THREE.Material,
+    position:readonly [number,number,number],scale:readonly [number,number,number]):THREE.Mesh{
+    const mesh=new THREE.Mesh(geometry,material);
+    mesh.position.set(...position);mesh.scale.set(...scale);
+    // These assets are owned by this kit, not by a streamed chunk.
+    mesh.userData.sharedHouseSpriteGeometry=true;
+    group.add(mesh);return mesh;
+  }
+
+  private surface(vertices:number[],uv:number[]):THREE.BufferGeometry{
+    const geometry=new THREE.BufferGeometry();
+    geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+    geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+    geometry.computeVertexNormals();this.geometries.push(geometry);return geometry;
+  }
+
+  add(parent:THREE.Object3D,z:number,ground:number,side:-1|1=-1,variant=-1):THREE.Group{
+    if(this.template){
+      const house=this.template.clone();
+      this.place(house,z,ground,side,variant);
+      parent.add(house);return house;
+    }
+    const {width:w,height:h,depth:d,roofRise:r}=PROTOTYPE_HOUSE;
+    const house=new THREE.Group();house.name='painted-volume-house';
+    house.position.set(-PROTOTYPE_HOUSE.front,ground-1.8,z);
+    house.rotation.y=Math.PI/2;
+    parent.add(house);
+    this.mesh(house,this.box,this.wall,[0,h/2,-d/2],[w,h,d]);
+    this.mesh(house,this.plane,this.facade,[0,h/2,.012],[w,h,1]);
+    this.mesh(house,this.box,this.trim,[0,.1,-d/2],[w+.12,.2,d+.12]);
+
+    // Two genuine pitched surfaces: front eave -> ridge -> rear eave.
+    const a=-w/2-.28,b=w/2+.28,front=.4,back=-d-.4,ridge=-d/2;
+    const top=h+.12;
+    const slopes=this.surface([
+      a,top,front,b,top,front,a,top+r,ridge,
+      b,top,front,b,top+r,ridge,a,top+r,ridge,
+      a,top+r,ridge,b,top+r,ridge,a,top,back,
+      b,top+r,ridge,b,top,back,a,top,back,
+    ],[0,0,1,0,0,1,1,0,1,1,0,1,0,0,1,0,0,1,1,0,1,1,0,1]);
+    this.mesh(house,slopes,this.roof,[0,0,0],[1,1,1]);
+    // Filled gable ends close the roof instead of leaving two floating sheets.
+    for(const x of [-w/2,w/2]){
+      const gable=this.surface([
+        x,top,0,x,top,-d,x,top+r,ridge,
+        x,top,-d,x,top,0,x,top+r,ridge,
+      ],[0,0,1,0,.5,1,1,0,0,0,.5,1]);
+      this.mesh(house,gable,this.wall,[0,0,0],[1,1,1]);
+    }
+    this.mesh(house,this.box,this.trim,[0,h-.05,.09],[w+.24,.24,.32]);
+    for(const x of [-w/2,w/2]){
+      this.mesh(house,this.box,this.trim,[x,h-.05,-d/2],[.22,.24,d+.2]);
+    }
+    this.mesh(house,this.box,this.trim,[0,h*.53,.04],[w,.13,.15]);
+    this.mesh(house,this.box,this.wall,[-w*.3,h+1.05,-d*.6],[.65,2.1,.7]);
+    this.mesh(house,this.box,this.trim,[-w*.3,h+2.1,-d*.6],[.82,.16,.86]);
+
+    // Each side has its own matching painted elevation, independently mapped
+    // so the front painting is never stretched around a corner.
+    for(const side of [-1,1]){
+      const end=this.mesh(house,this.plane,this.endFacades[0]!,[side*(w/2+.015),h/2,-d/2],[d,h,1]);
+      end.rotation.y=side*Math.PI/2;
+      end.name='end-facade';
+    }
+
+    const canvas=document.createElement('canvas');canvas.width=128;canvas.height=64;
+    const context=canvas.getContext('2d');
+    if(context){
+      context.fillStyle='#f9e6c3';context.fillRect(0,0,128,64);
+      context.fillStyle='#cf6957';
+      for(let i=0;i<128;i+=32)context.fillRect(i,0,16,64);
+    }
+    const cloth=new THREE.CanvasTexture(canvas);cloth.colorSpace=THREE.SRGBColorSpace;
+    this.textures.push(cloth);this.cloth.map=cloth;this.cloth.needsUpdate=true;
+    // The shop awning is a sloping surface with thickness at its outer lip.
+    const x0=-.55,x1=4.55,y=3.15,p=PROTOTYPE_HOUSE.awningProjection;
+    const canopy=this.surface([
+      x0,y,.04,x1,y,.04,x0,y-.48,p,
+      x1,y,.04,x1,y-.48,p,x0,y-.48,p,
+    ],[0,0,1,0,0,1,1,0,1,1,0,1]);
+    this.mesh(house,canopy,this.cloth,[0,0,0],[1,1,1]).name='awning';
+    this.mesh(house,this.box,this.cloth,[(x0+x1)/2,y-.59,p], [x1-x0,.22,.07]).name='awning';
+    for(const x of [x0+.12,x1-.12]){
+      this.mesh(house,this.box,this.wood,[x,1.33,p-.1],[.07,2.66,.07]).name='awning';
+    }
+    this.template=house.clone();
+    this.place(house,z,ground,side,variant);
+    return house;
+  }
+
+  private place(house:THREE.Group,z:number,ground:number,side:-1|1,variant:number):void{
+    const kind=variant<0?0:variant%3;
+    house.position.set(side*PROTOTYPE_HOUSE.front,ground-1.8,z);
+    house.rotation.y=-side*Math.PI/2;
+    house.scale.set(variant<0?1:[.8,.72,.86][kind]!,variant<0?1:[.94,.78,1.06][kind]!,1);
+    house.traverse(object=>{
+      if(object.name==='awning')object.visible=kind!==2;
+      if(object instanceof THREE.Mesh&&object.name==='end-facade')object.material=this.endFacades[kind]!;
+      if(object instanceof THREE.Mesh&&this.facades.includes(object.material as THREE.MeshBasicMaterial)){
+        object.material=this.facades[kind]!;
+      }
+    });
+  }
+
+  dispose():void{
+    this.disposed=true;
+    this.geometries.forEach(g=>g.dispose());
+    this.textures.forEach(t=>t.dispose());
+    for(const m of [...this.facades,...this.endFacades,this.wall,this.roof,this.trim,this.wood,this.cloth])m.dispose();
+  }
+}

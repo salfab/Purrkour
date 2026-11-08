@@ -126,7 +126,7 @@ button:disabled {opacity:.45;cursor:default}
 @keyframes instinct-glow {from {box-shadow:0 0 3px #f9cb66} to {box-shadow:0 0 16px #ffe187}}
 @keyframes reward-pop {from {opacity:.2;transform:translate(-50%,9px) scale(.8)} to {opacity:1;transform:translate(-50%,0) scale(1)}}
 @media(max-width:390px){
-  .instinct-bar{top:calc(125px + env(safe-area-inset-top));width:min(50vw,180px)}
+  .instinct-bar{top:calc(84px + env(safe-area-inset-top));left:auto;right:12px;transform:none;width:min(46vw,180px)}
   .reward-flash{top:calc(194px + env(safe-area-inset-top));font-size:19px}
 }
 @media(prefers-reduced-motion:reduce){.instinct-bar--rush,.reward-flash{animation:none}}

@@ -1,25 +1,47 @@
 import {chromium} from 'playwright';
 import {mkdir,writeFile} from 'node:fs/promises';
 
-const directory='screenshots/illustrated-facade-test';
+const houseStudy=process.argv.includes('--house');
+const directory=houseStudy?'screenshots/volume-house-test':'screenshots/illustrated-facade-test';
 await mkdir(directory,{recursive:true});
 const browser=await chromium.launch({
   headless:true,
+  ...(process.env.PURRKOUR_BROWSER_PATH?{executablePath:process.env.PURRKOUR_BROWSER_PATH}:{}),
   args:[
     '--use-gl=angle','--use-angle=swiftshader','--enable-webgl',
     '--disable-dev-shm-usage','--no-sandbox',
   ],
 });
 const results=[];
-const items=[
+const base=process.env.PURRKOUR_CAPTURE_URL || 'http://127.0.0.1:4173/Purrkour/';
+const items=houseStudy?[
+  {district:'approach',distance:48},
+  {district:'near',distance:56},
+  {district:'passing',distance:66},
+]:[
   {district:'old-town',distance:50},
   {district:'market',distance:150},
   {district:'gardens',distance:250},
   {district:'twilight',distance:350},
 ];
 try{
-  for(const item of items){
-    for(const style of ['sprites','compare']){
+  if(houseStudy){
+    for(const view of ['corner','front']){
+      const page=await browser.newPage({viewport:{width:1080,height:900},deviceScaleFactor:1});
+      const issues=[];
+      page.on('pageerror',error=>issues.push(String(error)));
+      await page.goto(new URL('house-study.html?view='+view,base).href,{waitUntil:'networkidle'});
+      await page.waitForFunction(()=>document.documentElement.dataset.volumeHouseReady==='true');
+      await page.waitForTimeout(500);
+      if(issues.length)throw new Error('House study errors: '+issues.join('; '));
+      const file='study-'+view+'.png';
+      await page.screenshot({path:directory+'/'+file});
+      results.push({study:true,view,file});
+      await page.close();
+    }
+  }
+  for(const item of process.argv.includes('--study-only')?[]:items){
+    for(const style of houseStudy?['sprites','volume']:['sprites','compare']){
       const context=await browser.newContext({
         viewport:{width:390,height:844},
         deviceScaleFactor:2,
@@ -47,13 +69,16 @@ try{
         housePreview:style,
         artShot:String(item.distance),
       });
-      const url='http://127.0.0.1:4173/Purrkour/?'+query.toString();
+      const url=base+'?'+query.toString();
       await page.goto(url,{waitUntil:'networkidle',timeout:45000});
       try{
         await page.waitForFunction(
           ()=>document.documentElement.dataset.houseArtReady==='true',
           null,
           {timeout:10000},
+        );
+        if(style==='volume')await page.waitForFunction(
+          ()=>document.documentElement.dataset.volumeHouseReady==='true',null,{timeout:10000},
         );
       }catch(error){
         const html=await page.evaluate(()=>({
