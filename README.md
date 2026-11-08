@@ -165,3 +165,8 @@ Les personnages utilisent désormais les deux grandes sources originales **1024�
 ## Purrkour v0.18 — Obstacles mobiles
 
 Après 400 m, un groupe de pigeons traverse la piste. Après 500 m, un chariot de fruits roulant peut être évité ou utilisé comme trampoline pour attraper un poisson doré haut. Les collisions sont non mortelles : le chat perd son combo, 30 points et ralentit brièvement. Les patterns sont introduits séparément puis mélangés progressivement après 600 m. Les commandes et sprites restaurés du chat sont inchangés.
+
+
+## v0.18.1 — Quartiers visuels (prototype de progression)
+
+La ville change maintenant de quartier tous les **325 m** pour faciliter les tests : Vieille ville → Marché (auvents et étals) → Jardins suspendus (balcons et feuillage) → Toits du crépuscule (lanternes et couleurs nocturnes). Les maisons ont plusieurs silhouettes et leurs crépis utilisent les textures existantes. Le ciel, la brume, l'éclairage et la teinte du panorama HQ changent progressivement. Le réglage de production pourra être porté à 500 ou 1000 mètres en modifiant `DISTRICT_LENGTH_METRES` dans `src/game/districts.ts`. Cette passe est **purement visuelle** ; l'énergie des poissons et Griffe suivront après validation du décor.

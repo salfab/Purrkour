@@ -195,3 +195,45 @@ button:disabled {opacity:.45;cursor:default}
 @media(prefers-reduced-motion:reduce){
   .rush-screen,.rush-screen__left,.rush-screen__right{animation:none}
 }
+
+/* v0.18.1: district identity should be legible but never cover the track. */
+.district-hud {
+  display:block;
+  margin-top:5px;
+  font-size:10px;
+  font-weight:700;
+  color:#f8ddaa;
+  white-space:nowrap;
+}
+.district-arrival {
+  position:absolute;
+  top:calc(213px + env(safe-area-inset-top));
+  left:50%;
+  transform:translateX(-50%);
+  z-index:4;
+  pointer-events:none;
+  padding:9px 15px;
+  border:1px solid rgba(255,232,185,.7);
+  border-radius:14px;
+  background:rgba(30,51,71,.82);
+  color:#fff4da;
+  box-shadow:0 4px 18px rgba(18,34,50,.25);
+  text-align:center;
+  white-space:nowrap;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  animation:district-enter .35s ease-out both;
+}
+.district-arrival strong {font-size:14px;letter-spacing:.02em}
+.district-arrival span {font-size:9px;font-weight:800;letter-spacing:.10em}
+@keyframes district-enter {
+  from{opacity:0;transform:translate(-50%,8px) scale(.96)}
+  to{opacity:1;transform:translate(-50%,0) scale(1)}
+}
+@media(max-width:390px){
+  .district-arrival{top:calc(235px + env(safe-area-inset-top));padding:7px 11px}
+  .district-arrival strong{font-size:12px}
+  .district-hud{font-size:9px}
+}
+@media(prefers-reduced-motion:reduce){.district-arrival{animation:none}}

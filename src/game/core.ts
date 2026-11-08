@@ -63,6 +63,8 @@ export interface Snapshot {
   instinct:number; rush:number; rushCount:number; comboMultiplier:number;
   comboChain:number; rewardFeedback:RewardFeedback; lastComboBonus:number;
   stumble:number;cartBounces:number;
+  districtIndex:number;districtName:string;nextDistrictName:string;
+  districtRemaining:number;districtWithin:number;
 }
 export function groundHeight(z: number): number {
   const cycle = Math.max(0, Math.floor(Math.max(0, z) / WORLD.rampPeriod));

@@ -363,3 +363,23 @@ Les deux PNG originaux de **1024×512 pixels**, **RGBA véritable**, sont désor
 - **Tests :** premiers obstacles garantis, variété déterministe, voie libre, collision unique, saut évitant les oiseaux, rebond de chariot, conservation du combo en cas d'évitement et perte en cas de choc, préservation des contraintes de l'embranchement. La jouabilité sur téléphone reste à valider.
 
 Les tissus et bourrasques ainsi qu'un véritable directeur de vagues de tension seront évalués après cette première version, afin de ne pas multiplier les nouveautés sans mesure.
+
+
+## 19. Prototype de quartiers visuels — v0.18.1
+
+**Objectif de test :** faire ressentir une progression esthétique dans un run, sans modifier les obstacles, le comportement du chat, les contrôles ni les embranchements. Pour faciliter l'évaluation, les quartiers durent provisoirement **325 mètres**. La seule constante à modifier plus tard pour passer à **500 ou 1 000 mètres** est `DISTRICT_LENGTH_METRES` dans `src/game/districts.ts`. Les quartiers alternent et se répètent après quatre étapes (prototype de contenu, pas quatre biomes infinis uniques).
+
+| Distance test | Quartier | Signes visuels |
+|---|---|---|
+| 0–324 m | Vieille ville | Crépi clair/rose, toits à deux pans, corniches et volets bleutés |
+| 325–649 m | Marché | Façades chaudes, auvents rayés, petites échoppes, lumière de fin d'après-midi |
+| 650–974 m | Jardins suspendus | Balcons multiples, rampes et jardinières, lierre et feuillage vert, lumière plus fraîche |
+| 975–1299 m | Toits du crépuscule | Toitures plus hautes, lanternes chaudes, façades lavande et ciel bleu-violet |
+
+Les silhouettes de maisons sont créées à partir de composants de faible coût (toits, volets, terrasses, auvents, pots, lanternes), selon la distance et une graine de run. Les façades réutilisent les deux textures de crépi déjà présentes ; plusieurs matériaux colorés réutilisent une même image, pour minimiser la mémoire GPU. L'évitement des façades qui traverseraient le faux raccord à 45° est conservé, avec marge supplémentaire pour les balcons.
+
+Le panorama JPEG haute qualité existant est réutilisé **sans étirement** et reçoit une teinte légère différente selon le quartier. La couleur du ciel, le brouillard et la lumière passent progressivement d'un quartier au suivant sur les **55 derniers mètres** de la zone : pas de changement brutal au franchissement d'une limite. Les bâtiments, eux, changent par morceaux de piste pour que les deux styles puissent apparaître ensemble à la frontière. Un discret nom de quartier et une annonce d'arrivée s'affichent dans le HUD.
+
+**Limites conscientes :** ce premier prototype ne comporte pas encore de nouveaux panoramas illustrés distincts ni de capacité Griffe ; les balconnières et corniches sont purement décoratives, donc sans collisions ni faux sentiment de parcours accessible. Les poissons ne sont pas encore un consommable : ces sujets nécessitent un équilibrage et une itération séparés.
+
+**Tests prévus :** limites de distance 325/650/975, continuité du fondu atmosphérique, diversité et déterminisme des profils, marges de sécurité par rapport à la piste, et conservation des tests du Y, des obstacles, de la caméra et des contrôles. Vérifier visuellement le niveau de détail et les performances sur téléphone avant d'allonger les quartiers à 500–1000 m.

@@ -8,6 +8,8 @@ const initial: Snapshot = {
   routeChoice:null,routeStage:null,
   instinct:0,rush:0,rushCount:0,comboMultiplier:1,comboChain:0,
   rewardFeedback:'none',lastComboBonus:0,stumble:0,cartBounces:0,
+  districtIndex:0,districtName:'Vieille ville',
+  nextDistrictName:'Quartier du marché',districtRemaining:325,districtWithin:0,
 };
 
 export function App() {
@@ -39,7 +41,9 @@ export function App() {
     <canvas ref={canvas} className="stage" aria-label="Jeu Purrkour, parcours 3D" />
     <header className="hud">
       <div className="hud-stats">
-        <div className="chip"><small>DISTANCE</small><strong>{status.distance} m</strong><span> ↑ {status.altitude.toFixed(1)} m</span></div>
+        <div className="chip"><small>DISTANCE</small><strong>{status.distance} m</strong><span> ↑ {status.altitude.toFixed(1)} m</span>
+          <span className="district-hud">{status.districtName} · {status.districtRemaining} m</span>
+        </div>
         <div className="chip"><small>SCORE</small><strong>{status.score}</strong><span> 🐟 {status.fish}</span></div>
         <div className={status.stumble>0||status.boost>0?'chip chip--boost':'chip'}>
           {status.stumble>0
@@ -55,6 +59,12 @@ export function App() {
         <button type="button" className="icon-btn" aria-label="Mettre le jeu en pause" disabled={!running} onClick={()=>game.current?.pause()}>Ⅱ</button>
       </div>
     </header>
+    {running&&status.districtIndex>0&&status.districtWithin<20&&(
+      <div className="district-arrival" aria-live="polite">
+        <strong>✦ {status.districtName}</strong>
+        <span>NOUVEAU QUARTIER DÉCOUVERT !</span>
+      </div>
+    )}
     {running&&status.rush>0&&(
       <div className="rush-screen" aria-hidden="true">
         <div className="rush-screen__left"/>
@@ -102,7 +112,7 @@ export function App() {
     </div>}
     {!running&&<section className="overlay">
       <div className="dialog">
-        <div className="eyebrow">PURRKOUR · V0.18 · MOBILE FIRST</div>
+        <div className="eyebrow">PURRKOUR · V0.18.1 · MOBILE FIRST</div>
         <h1>Purrkour 🐈</h1>
         {error&&<p className="error">Impossible de démarrer le jeu : {error}</p>}
         {!error&&status.mode==='menu'&&<>
@@ -141,7 +151,7 @@ export function App() {
           </div>
           <button type="button" onClick={()=>game.current?.start()}>Rejouer</button>
         </>}
-        <p>Prototype mobile v0.18 · Pigeons, chariots et nouveaux enchaînements.</p>
+        <p>Prototype mobile v0.18.1 · Quatre quartiers à explorer.</p>
       </div>
     </section>}
   </main>;

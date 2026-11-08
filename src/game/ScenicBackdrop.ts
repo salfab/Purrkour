@@ -87,8 +87,9 @@ export class ScenicBackdrop {
     );
   }
 
-  update(distance:number,groundHeight:number,pose:RoutePose):void{
+  update(distance:number,groundHeight:number,pose:RoutePose,tint:THREE.Color):void{
     if(!this.panorama)return;
+    this.panorama.material.color.copy(tint);
     const drift=panoramaPan(distance);
     const distanceAhead=92;
     this.panorama.position.set(

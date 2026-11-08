@@ -9,6 +9,7 @@ import {routePose} from './routeGeometry';
 import {cameraBlendFactor,frameRouteCamera} from './routeCamera';
 import {comboMultiplier} from './rewards';
 import {RushEffects} from './RushEffects';
+import {DISTRICTS,districtAt,districtBlend} from './districts';
 
 export type UpdateListener = (snapshot: Snapshot) => void;
 
@@ -26,6 +27,12 @@ export class PurrkourGame {
   private readonly desiredCamera=new THREE.PerspectiveCamera(64,1,.1,180);
   private cameraInitialized=false;
   private readonly scene=new THREE.Scene();
+  private readonly skyColors=DISTRICTS.map(d=>new THREE.Color(d.sky));
+  private readonly fogColors=DISTRICTS.map(d=>new THREE.Color(d.fog));
+  private readonly horizonColors=DISTRICTS.map(d=>new THREE.Color(d.panoramaTint));
+  private readonly sunColors=DISTRICTS.map(d=>new THREE.Color(d.sunlight));
+  private readonly horizonTint=new THREE.Color();
+  private readonly sunlight=new THREE.DirectionalLight('#fff3d6',2.4);
   private readonly backdrop=new ScenicBackdrop();
   private readonly world=new ArtWorld();
   private readonly rushEffects=new RushEffects();
@@ -58,8 +65,7 @@ export class PurrkourGame {
     this.scene.background=new THREE.Color('#a9d4e8');
     this.scene.fog=new THREE.Fog('#c8dbe0',34,108);
     this.scene.add(new THREE.HemisphereLight('#ffffff','#bc9e91',2.1));
-    const sunlight=new THREE.DirectionalLight('#fff3d6',2.4);
-    sunlight.position.set(-7,15,-10);this.scene.add(sunlight);
+    this.sunlight.position.set(-7,15,-10);this.scene.add(this.sunlight);
     this.scene.add(this.backdrop.group,this.world.group,this.fork.group,
       this.rushEffects.group,this.world.cat);
     this.music=new Audio(`${import.meta.env.BASE_URL}assets/audio/soundtrack_1.mp3`);
@@ -139,6 +145,18 @@ export class PurrkourGame {
       this.hudTimer+=dt;
       if(this.hudTimer>.10){this.hudTimer=0;this.publish();}
     }
+    const blend=districtBlend(this.player.z);
+    const currentIndex=DISTRICTS.findIndex(d=>d.key===blend.current.key);
+    const nextIndex=(currentIndex+1)%DISTRICTS.length;
+    const current=Math.max(0,currentIndex);
+    (this.scene.background as THREE.Color)
+      .copy(this.skyColors[current]!).lerp(this.skyColors[nextIndex]!,blend.factor);
+    (this.scene.fog as THREE.Fog).color
+      .copy(this.fogColors[current]!).lerp(this.fogColors[nextIndex]!,blend.factor);
+    this.sunlight.color
+      .copy(this.sunColors[current]!).lerp(this.sunColors[nextIndex]!,blend.factor);
+    this.horizonTint
+      .copy(this.horizonColors[current]!).lerp(this.horizonColors[nextIndex]!,blend.factor);
     this.world.update(this.player,this.collected);
     this.rushEffects.update(this.player,this.mode==='running');
     this.fork.update(this.player.routeChoice,this.player.elapsed,this.player.z);
@@ -163,6 +181,7 @@ export class PurrkourGame {
     this.backdrop.update(
       this.player.z,groundHeight(this.player.z),
       routePose(this.player.z,this.player.routeChoice),
+      this.horizonTint,
     );
     this.renderer.render(this.scene,this.camera);
     this.frameId=requestAnimationFrame(this.frame);
@@ -179,6 +198,7 @@ export class PurrkourGame {
     this.publish();
   }
   private publish():void{
+    const district=districtAt(this.player.z);
     this.onUpdate({
       mode:this.mode,distance:Math.floor(this.player.z),altitude:groundHeight(this.player.z),
       speed:this.player.speed,score:this.player.score,fish:this.player.fish,
@@ -193,6 +213,11 @@ export class PurrkourGame {
       lastComboBonus:this.player.rewards.lastBonus,
       stumble:this.player.stumbleRemaining,
       cartBounces:this.player.cartBounces,
+      districtIndex:district.ordinal,
+      districtName:district.theme.name,
+      nextDistrictName:district.next.name,
+      districtRemaining:Math.ceil(district.remaining),
+      districtWithin:Math.floor(district.within),
     });
   }
   dispose():void{

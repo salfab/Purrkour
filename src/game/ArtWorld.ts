@@ -9,6 +9,8 @@ import {catRearPose,rearDisplayFrame} from './catMotion';
 import {terraceQuadUV,trackQuadUV,jumpShadowAppearance,profileFrame} from './visualPolish';
 import {movingObstaclesNear,type MovingObstacle} from './movingObstacles';
 import {MovingObstacleArt} from './MovingObstacleArt';
+import {DistrictBuildings} from './DistrictBuildings';
+import {houseProfile} from './districts';
 
 function canvasTexture(size: number, paint: (ctx: CanvasRenderingContext2D, size: number) => void): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -242,6 +244,7 @@ export class ArtWorld {
   private readonly pickupMaterials:Record<Pickup['kind'],THREE.SpriteMaterial>;
   private readonly propMaterials:{window:THREE.SpriteMaterial;flower:THREE.SpriteMaterial;banner:THREE.SpriteMaterial};
   private readonly wallPropMaterials:{window:THREE.MeshBasicMaterial;banner:THREE.MeshBasicMaterial};
+  private readonly districtBuildings:DistrictBuildings;
   private catAtlasReady=false;
   private catFrames:THREE.CanvasTexture[]=[];
   private rearAtlasReady=false;
@@ -299,6 +302,11 @@ export class ArtWorld {
       return m;
     };
     this.wallPropMaterials={window:onWall(this.propMaterials.window),banner:onWall(this.propMaterials.banner)};
+    this.districtBuildings=new DistrictBuildings({
+      cream:this.wallMaterial,peach:this.peachMaterial,roof:this.roofMaterial,
+      window:this.wallPropMaterials.window,banner:this.wallPropMaterials.banner,
+      flower:this.propMaterials.flower,
+    });
     this.catCanvas=document.createElement('canvas');
     this.catCanvas.width=128;this.catCanvas.height=128;
     this.catTexture=new THREE.CanvasTexture(this.catCanvas);
@@ -382,6 +390,7 @@ export class ArtWorld {
         loaded.repeat.set(repeatX,repeatY);
         material.map=loaded;
         material.needsUpdate=true;
+        this.districtBuildings?.refreshTextures();
       },
       undefined,
       ()=>console.warn('Purrkour: painted material unavailable:',filename),
@@ -449,20 +458,6 @@ export class ArtWorld {
   private box(group:THREE.Group,x:number,y:number,z:number,w:number,h:number,d:number,material:THREE.Material):void{
     const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
     mesh.position.set(x,y,z);group.add(mesh);
-  }
-  private prop(group:THREE.Group,which:'window'|'flower'|'banner',x:number,y:number,z:number,w:number,h:number):void{
-    const s=new THREE.Sprite(this.propMaterials[which]);s.position.set(x,y,z);s.scale.set(w,h,1);group.add(s);
-  }
-  /**
-   * A banner/window is flush with the inward-facing wall, never billboarded.
-   * The small inward offset prevents z-fighting and wall intersections.
-   */
-  private wallProp(group:THREE.Group,which:'window'|'banner',side:-1|1,y:number,z:number,w:number,h:number):void{
-    const innerWallX=side*(7-3.7/2);
-    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h),this.wallPropMaterials[which]);
-    mesh.position.set(innerWallX-side*.035,y,z);
-    mesh.rotation.y=side<0?Math.PI/2:-Math.PI/2;
-    group.add(mesh);
   }
   private createChunk(index:number,runSeed:number,route:RouteChoice|null):THREE.Group{
     const from=index*this.chunkLength;const to=from+this.chunkLength;const group=new THREE.Group();
@@ -563,16 +558,18 @@ export class ArtWorld {
       this.movingViews.set(obstacle.id,{object,obstacle});
     }
     if(index%3===0&&from+5>=visualStart&&from+5<visualEnd){
-      const left=index%2===0;const sign=left?-1:1;const z=from+5;
-      // The incoming decorative road must never run through a building.
-      // Skip only the facade that would intersect it; keep the other side.
-      if(!fakeMergeOverlapsBuilding(z,sign*7,route)){
-        const floor=groundHeight(z),height=5.8+(index%4)*.65;
-        this.box(group,sign*7,floor+height/2-1.8,z,3.7,height,12,left?this.wallMaterial:this.peachMaterial);
-        this.box(group,sign*7,floor+height-1.75,z,4,.36,12.25,this.roofMaterial);
-        this.wallProp(group,'window',sign as -1|1,floor+2.5,z-1.6,1.5,2);
-        this.prop(group,'flower',sign*3.55,floor-1.8+.55,z+3.5,1.05,1.05);
-        this.wallProp(group,'banner',sign as -1|1,floor+3.2,z+3,1.05,1.7);
+      const z=from+5;
+      const primary: -1|1=Math.floor(index/3)%2===0?-1:1;
+      const other: -1|1=primary===-1?1:-1;
+      const sides:readonly (-1|1)[]=index%6===0?[primary,other]:[primary];
+      for(const side of sides){
+        const house=houseProfile(index,runSeed,side,z);
+        // The 45° decorative merge stays clear even with wider houses,
+        // balconies, awnings and cornices.
+        if(fakeMergeOverlapsBuilding(
+          z,house.centerX,route,house.width/2+.75,house.depth/2+.35,
+        ))continue;
+        this.districtBuildings.add(group,house,groundHeight(z));
       }
     }
     this.warpChunk(group,route);
@@ -700,6 +697,7 @@ export class ArtWorld {
   dispose():void{
     this.resetRun(0);
     this.shadow.geometry.dispose();
+    this.districtBuildings.dispose();
     this.movingArt.dispose();
     this.materials.forEach(m=>m.dispose());
     this.textures.forEach(t=>t.dispose());
