@@ -11,6 +11,7 @@ import {movingObstaclesNear,type MovingObstacle} from './movingObstacles';
 import {MovingObstacleArt} from './MovingObstacleArt';
 import {DistrictBuildings} from './DistrictBuildings';
 import {houseProfilesForChunk} from './districts';
+import {IllustratedHouseArt,housePreviewMode} from './IllustratedHouseArt';
 
 function canvasTexture(size: number, paint: (ctx: CanvasRenderingContext2D, size: number) => void): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -245,6 +246,7 @@ export class ArtWorld {
   private readonly propMaterials:{window:THREE.SpriteMaterial;flower:THREE.SpriteMaterial;banner:THREE.SpriteMaterial};
   private readonly wallPropMaterials:{window:THREE.MeshBasicMaterial;banner:THREE.MeshBasicMaterial};
   private readonly districtBuildings:DistrictBuildings;
+  private readonly illustratedBuildings:IllustratedHouseArt;
   private catAtlasReady=false;
   private catFrames:THREE.CanvasTexture[]=[];
   private rearAtlasReady=false;
@@ -310,6 +312,11 @@ export class ArtWorld {
     // Real raster paintings from the original generated hand-painted asset
     // study. They replace only the wall/roof maps; geometry stays unchanged.
     this.districtBuildings.loadPaintedTextures();
+    // The complete illustrated house silhouette is opt-in until we validate
+    // the actual live Three.js camera (not an ImageGen mock screenshot).
+    this.illustratedBuildings=new IllustratedHouseArt(
+      housePreviewMode(typeof window==='undefined'?'':window.location.search),
+    );
     this.catCanvas=document.createElement('canvas');
     this.catCanvas.width=128;this.catCanvas.height=128;
     this.catTexture=new THREE.CanvasTexture(this.catCanvas);
@@ -569,7 +576,11 @@ export class ArtWorld {
         house.z,house.centerX,route,
         house.width/2+.90,house.depth/2+.48,
       ))continue;
-      this.districtBuildings.add(group,house,groundHeight(house.z));
+      if(this.illustratedBuildings.useSprite(index)){
+        this.illustratedBuildings.add(group,house,groundHeight(house.z));
+      }else{
+        this.districtBuildings.add(group,house,groundHeight(house.z));
+      }
     }
     this.warpChunk(group,route);
     return group;
@@ -696,6 +707,7 @@ export class ArtWorld {
   dispose():void{
     this.resetRun(0);
     this.shadow.geometry.dispose();
+    this.illustratedBuildings.dispose();
     this.districtBuildings.dispose();
     this.movingArt.dispose();
     this.materials.forEach(m=>m.dispose());
