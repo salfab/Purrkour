@@ -117,7 +117,7 @@ export class MovingObstacleArt{
           root.add(wheel);
         }
       }
-      for(const [x,z] of [[-.32,-.24],[.05,-.31],[.38,-.12],[-.20,.20],[.23,.27]]){
+      for(const [x,z] of [[-.32,-.24],[.05,-.31],[.38,-.12],[-.20,.20],[.23,.27]] as const){
         const fruit=new THREE.Mesh(new THREE.SphereGeometry(.21,8,6),this.oranges);
         fruit.position.set(x,1.27,z);
         root.add(fruit);
