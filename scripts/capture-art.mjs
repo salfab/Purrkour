@@ -88,7 +88,7 @@ try{
           ()=>document.documentElement.dataset.volumeHouseReady==='true',null,{timeout:10000},
         );
         if(districtStudy&&item.district!=='market')await page.waitForFunction(
-          key=>['front','end',...(key==='old-town'?[]:['endalt'])].every(part=>document.documentElement.dataset['districtArt'+key.replaceAll('-','')+part]==='ready'),
+          key=>['front','frontalt','frontnew','end','endnew',...(key==='old-town'?[]:['endalt'])].every(part=>document.documentElement.dataset['districtArt'+key.replaceAll('-','')+part]==='ready'),
           item.district,{timeout:20000},
         );
       }catch(error){

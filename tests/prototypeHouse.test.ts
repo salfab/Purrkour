@@ -46,7 +46,7 @@ describe('painted volume house study',()=>{
       expect(secondMeshes[i]!.geometry).toBe(mesh.geometry);
       expect(secondMeshes[i]!.material).toBe(mesh.material);
       expect(mesh.userData.sharedHouseSpriteGeometry).toBe(true);
-      triangles+=(mesh.geometry.index?.count??mesh.geometry.getAttribute('position').count)/3;
+      if(mesh.visible)triangles+=(mesh.geometry.index?.count??mesh.geometry.getAttribute('position').count)/3;
     });
     expect(triangles).toBeLessThan(250);
     const disposed=Array.from(unique,g=>vi.spyOn(g,'dispose'));
@@ -69,7 +69,10 @@ describe('painted volume house study',()=>{
     await vi.waitFor(()=>expect(dataset.districtArtgardensfront).toBe('ready'));
     await vi.waitFor(()=>expect(dataset.districtArttwilightend).toBe('ready'));
     const material=(group:THREE.Group,name:string)=>(group.getObjectByName(name) as THREE.Mesh).material;
-    expect(material(garden,'front-facade')).toBe(material(another,'front-facade'));
+    await vi.waitFor(()=>expect(dataset.districtArtgardensfrontalt).toBe('ready'));
+    expect(material(garden,'front-facade')).not.toBe(material(another,'front-facade'));
+    expect(another.getObjectByName('roof-flat')?.visible).toBe(true);
+    expect(another.getObjectByName('roof-pitched')?.visible).toBe(false);
     expect(material(garden,'front-facade')).not.toBe(material(twilight,'front-facade'));
     const gardenGables=garden.children.filter((obj):obj is THREE.Mesh=>obj instanceof THREE.Mesh&&obj.name==='gable');
     const twilightGables=twilight.children.filter((obj):obj is THREE.Mesh=>obj instanceof THREE.Mesh&&obj.name==='gable');
@@ -77,7 +80,32 @@ describe('painted volume house study',()=>{
     expect(gardenGables).toHaveLength(2);
     expect((gardenGables[0]!.material as THREE.MeshBasicMaterial).map).toBeTruthy();
     expect(gardenGables[0]!.material).not.toBe(twilightGables[0]!.material);
-    expect(load.mock.calls.filter(([url])=>String(url).includes('district-gardens-'))).toHaveLength(3);
+    expect(load.mock.calls.filter(([url])=>String(url).includes('district-gardens-'))).toHaveLength(6);
+    kit.dispose();
+  });
+  it('uses each new facade in its own district without losing the earlier variants',async()=>{
+    vi.spyOn(THREE.TextureLoader.prototype,'loadAsync').mockImplementation(async()=>new THREE.Texture());
+    const dataset:Record<string,string>={};
+    vi.stubGlobal('document',{
+      documentElement:{dataset},
+      createElement:()=>({width:0,height:0,getContext:()=>({fillStyle:'',fillRect:()=>{}})}),
+    });
+    const kit=new PrototypeHouseArt();const parent=new THREE.Group();
+    for(const district of ['old-town','gardens','twilight','market'] as const){
+      const count=district==='market'?4:3;
+      const houses=Array.from({length:count},(_,variant)=>kit.add(parent,variant*12,1.8,-1,variant,district));
+      const materials=houses.map(h=>(h.getObjectByName('front-facade') as THREE.Mesh).material);
+      expect(new Set(materials).size).toBe(count);
+      if(district!=='market'){
+        await vi.waitFor(()=>expect(dataset[`districtArt${district.replaceAll('-','')}frontnew`]).toBe('ready'));
+        await vi.waitFor(()=>expect(dataset[`districtArt${district.replaceAll('-','')}endnew`]).toBe('ready'));
+      }
+      for(const house of houses)expect(house.children.filter(o=>o.name==='end-facade')).toHaveLength(2);
+      const ends=houses.map(h=>(h.getObjectByName('end-facade') as THREE.Mesh).material);
+      expect(ends[count-1]).not.toBe(ends[0]);
+      expect(houses[count-1]!.getObjectByName('floor-trim')?.visible).toBe(false);
+    }
+    await vi.waitFor(()=>expect(dataset.volumeHouseReady).toBe('true'));
     kit.dispose();
   });
 });

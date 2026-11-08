@@ -21,9 +21,10 @@ export class PrototypeHouseArt{
   private readonly circle=new THREE.CircleGeometry(1,12);
   private readonly textures:THREE.Texture[]=[];
   private readonly facade=new THREE.MeshBasicMaterial({color:'#ffffff'});
-  private readonly facades=[this.facade,new THREE.MeshBasicMaterial(),new THREE.MeshBasicMaterial()];
+  private readonly facades=[this.facade,new THREE.MeshBasicMaterial(),new THREE.MeshBasicMaterial(),new THREE.MeshBasicMaterial()];
   private readonly endFacades=[new THREE.MeshBasicMaterial(),new THREE.MeshBasicMaterial(),new THREE.MeshBasicMaterial()];
-  private readonly districts=new Map<DistrictKey,{front:THREE.MeshBasicMaterial;end:THREE.MeshBasicMaterial;endAlt:THREE.MeshBasicMaterial|null;started:boolean}>();
+  private readonly marketEndNew=new THREE.MeshBasicMaterial();
+  private readonly districts=new Map<DistrictKey,{front:THREE.MeshBasicMaterial;frontAlt:THREE.MeshBasicMaterial;frontThird:THREE.MeshBasicMaterial;end:THREE.MeshBasicMaterial;endAlt:THREE.MeshBasicMaterial|null;endNew:THREE.MeshBasicMaterial;started:boolean}>();
   private readonly wall=new THREE.MeshBasicMaterial({color:'#e8c7b2'});
   private readonly gableBase=new THREE.MeshBasicMaterial();
   private readonly gables={
@@ -43,7 +44,7 @@ export class PrototypeHouseArt{
 
   constructor(){
     for(const key of ['old-town','gardens','twilight'] as const){
-      this.districts.set(key,{front:new THREE.MeshBasicMaterial(),end:new THREE.MeshBasicMaterial(),endAlt:key==='old-town'?null:new THREE.MeshBasicMaterial(),started:false});
+      this.districts.set(key,{front:new THREE.MeshBasicMaterial(),frontAlt:new THREE.MeshBasicMaterial(),frontThird:new THREE.MeshBasicMaterial(),end:new THREE.MeshBasicMaterial(),endAlt:key==='old-town'?null:new THREE.MeshBasicMaterial(),endNew:new THREE.MeshBasicMaterial(),started:false});
     }
     void this.load();
   }
@@ -56,12 +57,14 @@ export class PrototypeHouseArt{
         ['illustrated-houses/prototype-facade-v1.png',this.facade,false],
         ['illustrated-houses/prototype-facade-v2.png',this.facades[1]!,false],
         ['illustrated-houses/prototype-facade-v3.png',this.facades[2]!,false],
+        ['illustrated-houses/district-market-front-new.webp',this.facades[3]!,false],
         ['architecture/stucco_peach_painted.png',this.wall,true],
         ['architecture/stucco_cream_painted.png',this.gableBase,true],
         ['illustrated-houses/prototype-roof-v1.png',this.roof,true],
         ['illustrated-houses/prototype-end-v1.png',this.endFacades[0]!,false],
         ['illustrated-houses/prototype-end-v2.png',this.endFacades[1]!,false],
         ['illustrated-houses/prototype-end-v3.png',this.endFacades[2]!,false],
+        ['illustrated-houses/district-market-end-new.webp',this.marketEndNew,false],
       ];
       await Promise.all(sources.map(async ([file,material,tiled])=>{
         const texture=await loader.loadAsync(base+file);
@@ -80,8 +83,11 @@ export class PrototypeHouseArt{
       }
       for(const district of this.districts.values()){
         if(!district.front.map){district.front.map=this.facade.map;district.front.needsUpdate=true;}
+        if(!district.frontAlt.map){district.frontAlt.map=district.front.map;district.frontAlt.needsUpdate=true;}
+        if(!district.frontThird.map){district.frontThird.map=district.front.map;district.frontThird.needsUpdate=true;}
         if(!district.end.map){district.end.map=this.endFacades[0]!.map;district.end.needsUpdate=true;}
         if(district.endAlt&&!district.endAlt.map){district.endAlt.map=this.endFacades[0]!.map;district.endAlt.needsUpdate=true;}
+        if(!district.endNew.map){district.endNew.map=district.end.map;district.endNew.needsUpdate=true;}
       }
       if(!this.disposed)document.documentElement.dataset.volumeHouseReady='true';
     }catch(error){
@@ -95,10 +101,11 @@ export class PrototypeHouseArt{
     if(!district||district.started)return;
     district.started=true;
     const loader=new THREE.TextureLoader();
-    const parts:Array<[string,THREE.MeshBasicMaterial]>=[['front',district.front],['end',district.end]];
+    const parts:Array<[string,THREE.MeshBasicMaterial]>=[['front',district.front],['front-alt',district.frontAlt],['front-new',district.frontThird],['end',district.end],['end-new',district.endNew]];
     if(district.endAlt)parts.push(['end-alt',district.endAlt]);
     for(const [part,material] of parts){
-      void loader.loadAsync(`${import.meta.env.BASE_URL}assets/illustrated-houses/district-${key}-${part}.png`)
+      const extension=part==='front-alt'||part==='front-new'||part==='end-new'?'webp':'png';
+      void loader.loadAsync(`${import.meta.env.BASE_URL}assets/illustrated-houses/district-${key}-${part}.${extension}`)
         .then(texture=>{
           if(this.disposed){texture.dispose();return;}
           texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=4;
@@ -149,7 +156,10 @@ export class PrototypeHouseArt{
       a,top+r,ridge,b,top+r,ridge,a,top,back,
       b,top+r,ridge,b,top,back,a,top,back,
     ],[0,0,1,0,0,1,1,0,1,1,0,1,0,0,1,0,0,1,1,0,1,1,0,1]);
-    this.mesh(house,slopes,this.roof,[0,0,0],[1,1,1]);
+    this.mesh(house,slopes,this.roof,[0,0,0],[1,1,1]).name='roof-pitched';
+    this.mesh(house,this.box,this.wall,[0,top+.1,-d/2],[w+.3,.2,d+.3]).name='roof-flat';
+    for(const z of [-d-.1,.1])this.mesh(house,this.box,this.trim,[0,top+.24,z],[w+.35,.24,.18]).name='roof-flat';
+    for(const x of [-w/2,w/2])this.mesh(house,this.box,this.trim,[x,top+.24,-d/2],[.18,.24,d]).name='roof-flat';
     // Filled gable ends close the roof instead of leaving two floating sheets.
     for(const x of [-w/2,w/2]){
       const gable=this.surface([
@@ -159,15 +169,17 @@ export class PrototypeHouseArt{
       this.mesh(house,gable,this.gables.market[0]!,[0,0,0],[1,1,1]).name='gable';
       const side=Math.sign(x);
       const ring=this.mesh(house,this.circle,this.trim,[x+side*.025,top+r*.42,ridge],[.29,.29,1]);
+      ring.name='attic-window';
       ring.rotation.y=side*Math.PI/2;
       const glass=this.mesh(house,this.circle,this.atticGlass,[x+side*.03,top+r*.42,ridge],[.19,.19,1]);
+      glass.name='attic-window';
       glass.rotation.y=side*Math.PI/2;
     }
     this.mesh(house,this.box,this.trim,[0,h-.05,.09],[w+.24,.24,.32]);
     for(const x of [-w/2,w/2]){
       this.mesh(house,this.box,this.trim,[x,h-.05,-d/2],[.22,.24,d+.2]);
     }
-    this.mesh(house,this.box,this.trim,[0,h*.53,.04],[w,.13,.15]);
+    this.mesh(house,this.box,this.trim,[0,h*.53,.04],[w,.13,.15]).name='floor-trim';
     this.mesh(house,this.box,this.wall,[-w*.3,h+1.05,-d*.6],[.65,2.1,.7]);
     this.mesh(house,this.box,this.trim,[-w*.3,h+2.1,-d*.6],[.82,.16,.86]);
 
@@ -206,16 +218,25 @@ export class PrototypeHouseArt{
 
   private place(house:THREE.Group,z:number,ground:number,side:-1|1,variant:number,district:DistrictKey):void{
     const kind=variant<0?0:variant%3;
+    const marketKind=variant<0?0:variant%4;
     this.loadDistrict(district);
     const art=this.districts.get(district);
     house.position.set(side*PROTOTYPE_HOUSE.front,ground-1.8,z);
     house.rotation.y=-side*Math.PI/2;
-    house.scale.set(variant<0?1:[.8,.72,.86][kind]!,variant<0?1:[.94,.78,1.06][kind]!,1);
+    house.scale.set(variant<0?1:[.82,.62,.9][kind]!,variant<0?1:[.94,.72,1.12][kind]!,variant<0?1:[1,.86,1.12][kind]!);
+    const flat=variant>=0&&kind===1&&district!=='market';
     house.traverse(object=>{
-      if(object.name==='awning')object.visible=district==='market'&&kind!==2;
-      if(object instanceof THREE.Mesh&&object.name==='gable')object.material=district==='market'?this.gables.market[kind]!:this.gables[district];
-      if(object instanceof THREE.Mesh&&object.name==='end-facade')object.material=(kind===2?art?.endAlt:undefined)??art?.end??this.endFacades[kind]!;
-      if(object instanceof THREE.Mesh&&object.name==='front-facade')object.material=art?.front??this.facades[kind]!;
+      if(object.name==='roof-flat')object.visible=flat;
+      if(object.name==='roof-pitched'||object.name==='gable'||object.name==='attic-window')object.visible=!flat;
+      if(object.name==='floor-trim')object.visible=art?kind!==2:marketKind!==3;
+      if(object.name==='awning')object.visible=district==='market'&&marketKind!==2&&marketKind!==3;
+      if(object instanceof THREE.Mesh&&object.name==='gable')object.material=district==='market'?this.gables.market[marketKind===3?0:marketKind]!:this.gables[district];
+      if(object instanceof THREE.Mesh&&object.name==='end-facade')object.material=art
+        ?kind===2?art.endNew:kind===1?(art.endAlt??art.end):art.end
+        :marketKind===3?this.marketEndNew:this.endFacades[marketKind]!;
+      if(object instanceof THREE.Mesh&&object.name==='front-facade')object.material=art
+        ?kind===1?art.frontAlt:kind===2?art.frontThird:art.front
+        :this.facades[marketKind]!;
     });
   }
 
@@ -223,7 +244,7 @@ export class PrototypeHouseArt{
     this.disposed=true;
     this.geometries.forEach(g=>g.dispose());
     this.textures.forEach(t=>t.dispose());
-    this.districts.forEach(d=>{d.front.dispose();d.end.dispose();d.endAlt?.dispose();});
-    for(const m of [...this.facades,...this.endFacades,...this.gables.market,this.gables['old-town'],this.gables.gardens,this.gables.twilight,this.gableBase,this.atticGlass,this.wall,this.roof,this.trim,this.wood,this.cloth])m.dispose();
+    this.districts.forEach(d=>{d.front.dispose();d.frontAlt.dispose();d.frontThird.dispose();d.end.dispose();d.endAlt?.dispose();d.endNew.dispose();});
+    for(const m of [...this.facades,...this.endFacades,this.marketEndNew,...this.gables.market,this.gables['old-town'],this.gables.gardens,this.gables.twilight,this.gableBase,this.atticGlass,this.wall,this.roof,this.trim,this.wood,this.cloth])m.dispose();
   }
 }

@@ -14,6 +14,7 @@ import {houseProfile,houseProfilesForChunk} from './districts';
 import {IllustratedHouseArt,housePreviewMode} from './IllustratedHouseArt';
 import {PrototypeHouseArt,isVolumeStreet} from './PrototypeHouseArt';
 import {FishArt} from './FishArt';
+import {GardenFeatures} from './GardenFeatures';
 import {DESCENT,onDescent} from './descent';
 
 function canvasTexture(size: number, paint: (ctx: CanvasRenderingContext2D, size: number) => void): THREE.CanvasTexture {
@@ -236,6 +237,7 @@ export class ArtWorld {
   private readonly chunks=new Map<number,THREE.Group>();
   private readonly pickups=new Map<string,{sprite:THREE.Sprite,item:Pickup}>();
   private readonly movingArt=new MovingObstacleArt();
+  private readonly gardenFeatures=new GardenFeatures();
   private readonly movingViews=new Map<string,{object:THREE.Group;obstacle:MovingObstacle}>();
   private readonly groundMaterial:THREE.MeshLambertMaterial;
   private readonly terraceMaterial:THREE.MeshLambertMaterial;
@@ -631,6 +633,10 @@ export class ArtWorld {
         this.prototypeHouse?5.5:sprites ? 7.6 : house.depth/2+.48,
       ))continue;
       if(this.prototypeHouse){
+        if(house.district.key==='gardens'&&index%4===2){
+          this.gardenFeatures.add(group,house.z,groundHeight(house.z),house.side,Math.floor(index/4)+(house.side===1?1:0));
+          continue;
+        }
         this.prototypeHouse.add(group,house.z,groundHeight(house.z),house.side,index+(house.side===1?1:0),house.district.key);
         continue;
       }
@@ -782,6 +788,7 @@ export class ArtWorld {
     this.illustratedBuildings.dispose();
     this.fishArt.dispose();
     this.prototypeHouse?.dispose();
+    this.gardenFeatures.dispose();
     this.districtBuildings.dispose();
     this.movingArt.dispose();
     this.materials.forEach(m=>m.dispose());

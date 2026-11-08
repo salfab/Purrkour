@@ -41,6 +41,12 @@ export class PurrkourGame {
   private readonly fork=new RouteForkView({pavement:this.world.forkPavementMaterial,curb:this.world.forkCurbMaterial});
   private readonly controls: ThumbControls;
   private readonly music:HTMLAudioElement;
+  private readonly musicTracks=[
+    'soundtrack_1.mp3',
+    'soundtrack_2.mp3',
+  ] as const;
+  private musicTrack=0;
+  private hasStartedRun=false;
   private muted=false;
   private readonly resizeObserver: ResizeObserver;
   private readonly onUpdate: UpdateListener;
@@ -71,8 +77,9 @@ export class PurrkourGame {
     this.sunlight.position.set(-7,15,-10);this.scene.add(this.sunlight);
     this.scene.add(this.backdrop.group,this.world.group,this.fork.group,
       this.rushEffects.group,this.world.cat);
-    this.music=new Audio(`${import.meta.env.BASE_URL}assets/audio/soundtrack_1.mp3`);
-    this.music.loop=true;
+    this.music=new Audio(this.musicUrl(0));
+    this.music.loop=false;
+    this.music.addEventListener('ended',this.onMusicEnded);
     this.music.preload='auto';
     this.music.volume=.35;
     try{this.muted=localStorage.getItem('purrkour-music-muted')==='true';}catch{this.muted=false;}
@@ -120,6 +127,8 @@ export class PurrkourGame {
     this.desiredCamera.updateProjectionMatrix();
   }
   start():void{
+    if(this.hasStartedRun)this.nextMusic();
+    else this.hasStartedRun=true;
     const runSeed=Date.now()|0;
     this.player=makePlayer(runSeed);this.collected.clear();
     this.failureAge=0;
@@ -151,6 +160,19 @@ export class PurrkourGame {
     if(this.muted)return;
     void this.music.play().catch(()=>{/* Playback may require a user gesture. */});
   }
+  private musicUrl(index:number):string{
+    return `${import.meta.env.BASE_URL}assets/audio/${encodeURIComponent(this.musicTracks[index]!)}`;
+  }
+  private nextMusic():void{
+    this.musicTrack=(this.musicTrack+1)%this.musicTracks.length;
+    this.music.src=this.musicUrl(this.musicTrack);
+    this.music.load();
+  }
+  private readonly onMusicEnded=():void=>{
+    if(this.mode!=='running'||this.muted)return;
+    this.nextMusic();
+    this.playMusic();
+  };
   cycleCamera():number{
     const choices=[14,20,26,32] as const;
     const i=choices.indexOf(this.pitch as typeof choices[number]);
@@ -258,6 +280,7 @@ export class PurrkourGame {
     this.disposed=true;cancelAnimationFrame(this.frameId);
     document.removeEventListener('visibilitychange',this.visibility);
     this.resizeObserver.disconnect();this.controls.dispose();
+    this.music.removeEventListener('ended',this.onMusicEnded);
     this.music.pause();this.music.removeAttribute('src');this.music.load();
     this.world.dispose();this.rushEffects.dispose();this.fork.dispose();this.backdrop.dispose();this.renderer.dispose();
   }

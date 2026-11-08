@@ -137,12 +137,12 @@ export function App() {
         <h1>Purrkour</h1>
         <p>Un petit chat, de grands sauts et mille poissons.</p>
         <button type="button" className="pause-resume" onClick={()=>game.current?.start()}>▶ &nbsp; Commencer le run</button>
-        <small>VERSION 0.19.0</small>
+        <small>VERSION 0.19.1</small>
       </div>
     </section>}
     {(status.mode==='over'||!!error)&&<section className="overlay">
       <div className="dialog">
-        <div className="eyebrow">PURRKOUR · V0.19.0 · MOBILE FIRST</div>
+        <div className="eyebrow">PURRKOUR · V0.19.1 · MOBILE FIRST</div>
         <h1>Purrkour 🐈</h1>
         {error&&<p className="error">Impossible de démarrer le jeu : {error}</p>}
         {!error&&status.mode==='over'&&<>
@@ -161,7 +161,7 @@ export function App() {
           </div>
           <button type="button" onClick={()=>game.current?.start()}>Rejouer</button>
         </>}
-        <p>Prototype mobile v0.19.0 · Maisons illustrées en volume.</p>
+        <p>Prototype mobile v0.19.1 · Maisons illustrées en volume.</p>
       </div>
     </section>}
   </main>;
