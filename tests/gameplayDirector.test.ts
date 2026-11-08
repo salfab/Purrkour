@@ -1,6 +1,7 @@
 import {describe,it,expect} from 'vitest';
 import {segmentPlan,patternHasCrate,safeLaneX} from '../src/game/gameplayDirector';
 import {cratesNear,pickupsNear,WORLD} from '../src/game/core';
+import {movingObstaclesNear} from '../src/game/movingObstacles';
 
 describe('Purrkour gameplay director',()=>{
   it('keeps the first 100 metres predictable and introduces bouncing on the second segment',()=>{
@@ -34,15 +35,17 @@ describe('Purrkour gameplay director',()=>{
       }
     }
   });
-  it('places high reward fish above a real matching crate, but includes ground fish on a safe route',()=>{
+  it('places high reward fish above a bounceable crate or cart and keeps a safe ground lane',()=>{
     for(const seed of [0,17,561]){
       for(let segment=1;segment<20;segment++){
         const from=segment*100;
         const crates=cratesNear(from,from+100,seed);
+        const carts=movingObstaclesNear(from,from+100,seed).filter(o=>o.kind==='cart');
         const fish=pickupsNear(from,from+100,seed);
         for(const sky of fish.filter(p=>p.kind==='sky')){
           const crate=crates.find(c=>Math.abs(c.x-sky.x)<.01&&sky.z>c.z&&sky.z<c.z+3);
-          expect(crate).toBeDefined();
+          const cart=carts.find(c=>Math.abs(c.x-sky.x)<.01&&sky.z>c.z&&sky.z<c.z+3);
+          expect(crate??cart).toBeDefined();
           expect(fish.some(f=>f.kind==='fish'&&Math.abs(f.x-sky.x)>1.1&&Math.abs(f.z-sky.z)<3)).toBe(true);
         }
       }
