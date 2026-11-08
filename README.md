@@ -182,3 +182,10 @@ Refonte du décor autour de la piste : les parcelles sont distribuées tous les 
 Des **atlas PNG raster peints** sont maintenant appliqués aux murs et aux toits des maisons modulaires : quatre nuances de crépi issues des références illustrées et deux variantes de tuiles stylisées. Les atlas sont recadrés dans des textures GPU séparées sans compression WebP/AVIF et remplacent les anciens matériaux après chargement. Les façades sont rapprochées de 35 cm sans envahir le couloir de jeu. Pour inspecter les quatre quartiers rapidement, utilisez **[le mode aperçu 100 m](https://salfab.github.io/Purrkour/?districtPreview=1)**, sans modifier la progression normale à 325 m.
 
 Cette première passe ne remplace pas encore les anciennes fenêtres, portes et accessoires par des illustrations nouvelles. Si l'effet reste trop générique, le prochain choix est la façade entièrement dessinée en sprite avec seulement les volumes interactifs en 3D. Voir [GAMEPLAY.md](docs/GAMEPLAY.md).
+
+
+## v0.18.4 — Fenêtres et portes illustrées
+
+Complément à la passe précédente : le jeu utilise maintenant un vrai **troisième atlas PNG avec transparence** contenant deux fenêtres peintes à la main (fleurs et volets bleus) et deux portes méditerranéennes (bleue et bois). Les illustrations sont extraites de la planche de référence illustrée, puis isolées de son fond ivoire et découpées en quatre textures GPU. Leur affichage ne requiert pas de nouveaux volumes coûteux ; les décals légers remplacent les anciens volets et portes simplifiés. L'objectif reste de comparer ce rendu hybride à des bâtiments entièrement dessinés en sprites, si le résultat est encore trop artificiel.
+
+Mode de test rapide : [quartiers tous les 100 mètres](https://salfab.github.io/Purrkour/?districtPreview=1).

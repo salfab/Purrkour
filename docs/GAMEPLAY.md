@@ -449,3 +449,12 @@ Ce premier essai privilégie **de véritables textures raster** plutôt que le c
 **Critère de décision sur mobile :** vérifier le caractère peint des murs, la lisibilité des fenêtres et des toits et la cohérence stylistique avec le chat. Si les panneaux texture + géométrie restent trop artificiels, passer à des **maisons illustrées en sprites 2.5D** avec seulement les hitboxes de balcons, rebords et auvents interactifs en 3D. Ne pas transformer les maisons en coûteux modèles 3D complexes.
 
 **Tests :** validité PNG et dimensions exactes, extraction 2×2/2×1 sans chevauchement, association des palettes par quartier, activation opt-in des changements à 100 m, retrait contrôlé des façades, plus tous les tests de collision et d'embranchement.
+
+
+### v0.18.4 — Complément du pack : ouvertures illustrées et transparence
+
+Une troisième planche **`openings_painted_v1.png` (256×256 RGBA)** contient deux fenêtres illustrées et deux portes extraites du même design de référence que les crépis. La transparence est obtenue en retirant soigneusement le fond ivoire autour des dessins et en conservant la couleur originale des cadres et volets. La source et un aperçu de transparence sont disponibles dans le pack de travail. La résolution des illustrations a été réduite pour l'essai mobile ; la qualité exacte doit être jugée à l'écran.
+
+Les fenêtres et portes utilisent désormais des plans 2.5D avec matériaux partagés : les volets dessinés remplacent les anciens blocs 3D collés de part et d'autre des fenêtres. Les balcons, auvents et autres volumes non peints restent de vrais éléments de décor en 3D. La structure des bâtiments, les collisions et les obstacles restent inchangés.
+
+**Critère de passage à l'alternative :** après comparaison réelle à partir de captures du téléphone, si les maisons semblent toujours constituées de volumes avec des autocollants plutôt que de façades illustrées, privilégier une façade complète en sprite (une image par archétype et quartier), et conserver uniquement les surfaces nécessaires à Griffe comme éléments 3D interactifs. Il ne s'agit pas encore de construire ces sprites complets dans cette version.
