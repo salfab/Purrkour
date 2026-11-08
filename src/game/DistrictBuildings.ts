@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import {
   DISTRICTS,type HouseProfile,type DistrictKey,
-  type HouseArchetype,
 } from './districts';
 
 export interface DistrictMaterialSources{
@@ -179,8 +178,8 @@ export class DistrictBuildings{
       this.box(group,x,top+.07,z,w+.22,.15,d+.22,tiles);
       this.box(group,x-w/2,top+.30,z,.17,.39,d+.22,trim);
       this.box(group,x+w/2,top+.30,z,.17,.39,d+.22,trim);
-      this.box(group,x,top+.30,z-d/2,.13,.39,w*.08+0.17,trim);
-      // Rear parapet is small and never becomes a levitating slat.
+      this.box(group,x,top+.30,z-d/2,w+.22,.39,.13,trim);
+      this.box(group,x,top+.30,z+d/2,w+.22,.39,.13,trim);
     }
   }
 
