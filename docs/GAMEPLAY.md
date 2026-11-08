@@ -339,3 +339,15 @@ Le retour téléphone a montré que les traînées flottantes de la v0.17.5 rend
 Les pavés de la piste centrale utilisent désormais des coordonnées UV mondiales à raison d'une répétition de la texture tous les **5,5 mètres**, au lieu de plusieurs répétitions par largeur de piste. La piste principale, la branche du Y et le raccord à 45° utilisent une seule fonction `trackRibbonUV` et le même matériau, sans rupture de texture à 288 mètres. Le terrain en contrebas conserve sa taille de motif de 8 mètres.
 
 Tests Vitest : échelle de motif, continuité des UV à 288 m, conservation de la frame boost d'origine et absence de nouveaux effets de gameplay.
+
+
+### v0.17.7 — Retour aux sprites dessinés originaux (✅ intégré)
+
+Les deux PNG originaux de **1024×512 pixels**, **RGBA véritable**, sont désormais stockés sans recompression dans `public/assets/character/` : `cat_side_original_hq.png` et `cat_rear_original_hq.png`. Chacun comprend **4 colonnes × 2 lignes de 256×256 pixels**. Les huit poses de profil et les huit poses de dos sont isolées dans des textures GPU indépendantes, avec les pixels originaux copiés sans retouche destructive.
+
+- Profil : six frames de course, la frame 6 pour les sauts et **la frame 7 pour le boost original illustré avec ses propres traits jaunes**. Le miroir utilise la même image des deux côtés.
+- Dos : six frames de course, la frame 6 comme pose de saut principale (avec transitions prises dans les frames 4 et 5) et **la frame 7 pour le boost**. Les transformations légères de squash et tilt restent pour la réception ; aucun trait supplémentaire n'est peint sur le chat.
+- Suppression du nettoyage colorimétrique destructif `cleanRearFootArtifacts` et de `createRearBoostFrames`. Le dessin du chat par Canvas demeure uniquement un fallback si un PNG ne peut pas être chargé.
+- Tests automatisés des deux PNGs, de leurs dimensions et de leur format RGBA, de la bonne sélection des huit poses, des miroirs, de la transparence et des changements d'état de la course et du saut. Les poissons, textures du sol et contrôles ne sont pas modifiés.
+
+**v0.18 reste la prochaine étape**, pour les pigeons et chariots mobiles. Priorité d'abord à la validation visuelle de cette restauration sur téléphone.

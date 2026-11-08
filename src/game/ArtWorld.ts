@@ -5,8 +5,7 @@ import {ROUTE_FORK,activeRoute,type RouteChoice} from './routeChoices';
 import {routePoint,streamedRoadInterval,fakeMergeOverlapsBuilding} from './routeGeometry';
 import {catViewFromLocalX,mirrorProfileForView} from './catView';
 import {isolateCharacterFrames,setCharacterMirror,configureCharacterTexture} from './characterFrames';
-import {catRearPose} from './catMotion';
-import {createRearBoostFrames} from './characterFrames';
+import {catRearPose,rearDisplayFrame} from './catMotion';
 import {terraceQuadUV,trackQuadUV,jumpShadowAppearance,profileFrame} from './visualPolish';
 
 function canvasTexture(size: number, paint: (ctx: CanvasRenderingContext2D, size: number) => void): THREE.CanvasTexture {
@@ -243,14 +242,12 @@ export class ArtWorld {
   private catFrames:THREE.CanvasTexture[]=[];
   private rearAtlasReady=false;
   private rearFrames:THREE.CanvasTexture[]=[];
-  private rearBoostFrames:THREE.CanvasTexture[]=[];
   private readonly catCanvas:HTMLCanvasElement;
   private readonly catTexture:THREE.CanvasTexture;
   private readonly rearCanvas:HTMLCanvasElement;
   private readonly rearTexture:THREE.CanvasTexture;
   private backView=false;
   private lastMirrored=false;
-  private lastBoost=false;
   private wasGrounded=true;
   private lastLandingAt=Number.NEGATIVE_INFINITY;
   private readonly catSprite:THREE.Sprite;
@@ -319,10 +316,10 @@ export class ArtWorld {
     // Real hand-drawn kawaii sprites, 4 columns × 2 rows. The canvas cat
     // above is retained exclusively as a graceful fallback while loading.
     const atlas=new THREE.TextureLoader().load(
-      `${import.meta.env.BASE_URL}assets/character/cat_atlas.png`,
+      `${import.meta.env.BASE_URL}assets/character/cat_side_original_hq.png`,
       loaded=>{
         try{
-          this.catFrames=isolateCharacterFrames(loaded.image as HTMLImageElement,4,2,'side');
+          this.catFrames=isolateCharacterFrames(loaded.image as HTMLImageElement,4,2);
           this.textures.push(...this.catFrames);
           this.catAtlasReady=this.catFrames.length===8;
           this.lastFrame=-1;
@@ -342,19 +339,18 @@ export class ArtWorld {
     atlas.minFilter=THREE.LinearFilter;
     this.textures.push(atlas);
 
-    // Clean, transparent rear-running PNG animation (4 frames of 96×96).
+    // Restored original rear PNG (8 true 256×256 frames, including jump and boost).
     // The procedural Canvas rear cat is only a fallback during loading/error.
     const rearAtlas=new THREE.TextureLoader().load(
-      `${import.meta.env.BASE_URL}assets/character/cat_rear_clean.png`,
+      `${import.meta.env.BASE_URL}assets/character/cat_rear_original_hq.png`,
       loaded=>{
         try{
-          // New PNG source has clean transparent margins; keep per-frame RGBA isolation.
-          this.rearFrames=isolateCharacterFrames(loaded.image as HTMLImageElement,4,1,'rear');
-          this.rearBoostFrames=createRearBoostFrames(this.rearFrames);
-          this.textures.push(...this.rearFrames,...this.rearBoostFrames);
-          this.rearAtlasReady=this.rearFrames.length===4&&this.rearBoostFrames.length===4;
+          // Preserve original RGBA pixels without repainting or foot cleanup.
+          this.rearFrames=isolateCharacterFrames(loaded.image as HTMLImageElement,4,2);
+          this.textures.push(...this.rearFrames);
+          this.rearAtlasReady=this.rearFrames.length===8;
           this.lastFrame=-1;
-          this.drawCat(0,this.backView,this.lastMirrored,this.lastBoost);
+          this.drawCat(0,this.backView,this.lastMirrored);
         }catch(error){
           console.warn('Purrkour: rear cat frame fallback',error);
         }
@@ -392,19 +388,18 @@ export class ArtWorld {
     texture.anisotropy=2;
     this.textures.push(texture);
   }
-  private drawCat(index:number,back:boolean,mirrored=false,boost=false):void{
+  private drawCat(index:number,back:boolean,mirrored=false):void{
     if(this.lastFrame===index&&this.backView===back
-      &&this.lastMirrored===mirrored&&this.lastBoost===boost)return;
+      &&this.lastMirrored===mirrored)return;
     this.lastFrame=index;
     this.backView=back;
     this.lastMirrored=mirrored;
-    this.lastBoost=boost;
     const material=this.catSprite.material as THREE.SpriteMaterial;
 
     if(back){
       this.catSprite.scale.x=1.9;
       if(this.rearAtlasReady){
-        const frame=(boost?this.rearBoostFrames:this.rearFrames)[index%4];
+        const frame=this.rearFrames[index%8];
         if(frame){
           if(material.map!==frame){
             material.map=frame;
@@ -665,11 +660,11 @@ export class ArtWorld {
     const sideFrame=profileFrame(player.boost,player.grounded,player.anim);
     // The cleaned rear sheet now has separate takeoff/apex/fall/landing
     // animations instead of translating a frozen running pose upwards.
-    const frame=view==='rear'?rear.frame:sideFrame;
+    const frame=view==='rear'?rearDisplayFrame(rear,player.boost):sideFrame;
     // Keep the kawaii sprite's colors; Rush adds a small warm tint only.
     const material=this.catSprite.material as THREE.SpriteMaterial;
     material.color.set(player.rewards.rushRemaining>0?'#fff1bd':'#ffffff');
-    this.drawCat(frame,view==='rear',mirrorProfileForView(view),player.boost>0);
+    this.drawCat(frame,view==='rear',mirrorProfileForView(view));
     const isRear=view==='rear';
     this.catSprite.scale.set(
       1.9*(isRear?rear.scaleX:1),

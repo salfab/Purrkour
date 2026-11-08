@@ -1,16 +1,24 @@
 import {describe,expect,it} from 'vitest';
-import {catRearPose} from '../src/game/catMotion';
+import {catRearPose,rearDisplayFrame} from '../src/game/catMotion';
 import {WORLD,makePlayer,simulate,type Controls} from '../src/game/core';
 
 describe('rear-view cat jump and landing animation',()=>{
-  it('runs all four clean rear frames at a pace determined by the running animation',()=>{
-    for(let i=0;i<12;i++){
+  it('runs all six original rear walk frames at a pace determined by animation',()=>{
+    for(let i=0;i<18;i++){
       const pose=catRearPose(true,0,i);
       expect(pose.phase).toBe('run');
-      expect(pose.frame).toBe(i%4);
+      expect(pose.frame).toBe(i%6);
       expect(pose.scaleX).toBe(1);
       expect(pose.scaleY).toBe(1);
     }
+  });
+  it('uses the untouched eighth original atlas pose for a grounded speed boost',()=>{
+    const pose=catRearPose(true,0,2);
+    expect(rearDisplayFrame(pose,1.5)).toBe(7);
+    expect(rearDisplayFrame(pose,0)).toBe(2);
+    // In flight, jumping remains more important than the speed effect.
+    const jumping=catRearPose(false,0,2);
+    expect(rearDisplayFrame(jumping,3)).toBe(6);
   });
 
   it('uses different poses for ascent, apex, and fall, not a stationary translated sprite',()=>{
@@ -18,7 +26,7 @@ describe('rear-view cat jump and landing animation',()=>{
     const apex=catRearPose(false,0,12);
     const fall=catRearPose(false,-WORLD.jumpVelocity,12);
     expect([rise.phase,apex.phase,fall.phase]).toEqual(['takeoff','apex','fall']);
-    expect(new Set([rise.frame,apex.frame,fall.frame]).size).toBe(3);
+    expect([rise.frame,apex.frame,fall.frame]).toEqual([4,6,5]);
     expect(rise.scaleY).toBeGreaterThan(1);
     expect(apex.scaleY).toBeLessThan(1);
     expect(fall.tilt).not.toBe(0);

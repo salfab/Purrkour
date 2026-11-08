@@ -155,3 +155,8 @@ Le jeu utilise bien le panorama HQ JPEG déjà présent dans `public/assets/back
 ## v0.17.6 — Boost lisible, pavés agrandis
 
 Le boost de profil utilise l'image dessinée originale avec ses traits jaunes, sans la traînée de sprites flottants ajoutée en v0.17.5. Les variantes arrière gardent des accents dorés plus sobres. Le motif sur la piste est agrandi à 5,5 m par répétition, avec les mêmes UV sur la bifurcation pour éviter les faux raccords.
+
+
+## v0.17.7 — PNG originaux kawaii restaurés
+
+Les personnages utilisent désormais les deux grandes sources originales **1024×512 RGBA** dans `public/assets/character/`. Les atlas de profil et de dos contiennent chacun huit poses en **4×2** et conservent leur **boost illustré d'origine**, sans dessin ajouté sur les sprites ni suppression de couleurs au niveau des pattes. Voir [GAMEPLAY.md](docs/GAMEPLAY.md) pour le mapping des poses et les tests. La v0.18 ajoutera les obstacles mobiles.
