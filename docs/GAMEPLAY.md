@@ -383,3 +383,50 @@ Le panorama JPEG haute qualité existant est réutilisé **sans étirement** et 
 **Limites conscientes :** ce premier prototype ne comporte pas encore de nouveaux panoramas illustrés distincts ni de capacité Griffe ; les balconnières et corniches sont purement décoratives, donc sans collisions ni faux sentiment de parcours accessible. Les poissons ne sont pas encore un consommable : ces sujets nécessitent un équilibrage et une itération séparés.
 
 **Tests prévus :** limites de distance 325/650/975, continuité du fondu atmosphérique, diversité et déterminisme des profils, marges de sécurité par rapport à la piste, et conservation des tests du Y, des obstacles, de la caméra et des contrôles. Vérifier visuellement le niveau de détail et les performances sur téléphone avant d'allonger les quartiers à 500–1000 m.
+
+
+
+## 20. Refondre les maisons en véritables bâtiments modulaires — v0.18.2
+
+**Constat visuel :** les anciennes maisons étaient des boîtes quasi identiques espacées de 36 m, avec de longues plaques inclinées au-dessus du volume principal. Leur fréquence donnait de larges zones vides et leurs toits ressemblaient à des paravents décollés. Corriger seulement les couleurs ne suffisait pas.
+
+**Nouvelle approche géométrique :** les façades sont désormais implantées par parcelles tous les **12 mètres** (ancienne génération : 36 m), mais avec des cours vides et quelques bâtiments secondaires. Elles alternent sur les deux côtés pour éviter de former une muraille continue ; les maisons compactes partagent parfois le même bloc, avec suffisamment d'espace entre leurs emprises. La variation est déterministe à partir de la graine du run et ne dépend d'aucun frame rate.
+
+### Kit de volumes réutilisables (faits dans le moteur)
+
+| Module | Silhouette et utilité |
+|---|---|
+| **Maison à pignon** | Deux vraies surfaces inclinées rejoignent une arête de toit ; pas de barres détachées |
+| **Maison à terrasse** | Toiture plate avec petit parapet réellement posé sur le périmètre |
+| **Maison à étages** | Volume supérieur décalé et plus étroit, toiture secondaire et vraie terrasse |
+| **Tourelle** | Masse basse et étage supérieur plus petit, couronnement pyramidal |
+| **Échoppe** | Bâtiment bas avec toit plat et auvent rayé constitué d'une surface continue |
+
+Les volumes et les proportions se combinent avec différents crépis, volets, portes, seuils, feuilles de lierre, lanternes, balcons et étals de fruits. Les matériaux réutilisent les fichiers peints existants ; les toiles d'auvent utilisent une seule petite texture Canvas 128×64 réutilisée. Pour le rendu sur mobile, les boîtes utilisent un **seul maillage partagé** plutôt qu'une géométrie distincte pour chaque accessoire. Les toitures à pignon, les feuillages simples et les toits pyramidaux ont eux aussi des géométries partagées et leurs matériaux sont recyclés. Aucune nouvelle texture lourde n'est chargée pour chaque bâtiment.
+
+### Différenciation des quartiers
+
+- **Vieille ville :** surtout pignons, quelques tourelles et maisons décalées, seuils en pierre et plantes discrètes.
+- **Quartier du marché :** davantage d'échoppes, auvents rayés continus, étals bas et volumes plats.
+- **Jardins suspendus :** maisons en terrasse, balcons appuyés sur le mur, feuillages et vignes. Décoration seulement : les rebords ne sont PAS encore grimpables.
+- **Toits du crépuscule :** silhouettes de tourelles, lanternes lumineuses et façades mauves/bleutées.
+
+### Sécurité, limites et rendu
+
+- La piste jouable reste strictement identique. L'emprise visuelle (notamment les auvents) commence à au moins **1,05 m au-delà du bord de piste**.
+- Le raccord de la route secondaire à **45°** conserve l'exclusion géométrique des maisons, élargie aux corniches et accessoires.
+- La géométrie du Y et la caméra ne changent pas. Le nombre de maisons visibles augmente : la fluidité devra être contrôlée sur téléphone et, si nécessaire, le nombre de draw calls réduit avec des lots instanciés.
+- Le changement de quartier reste tous les **325 mètres pendant les tests**. Une seule constante suffira pour passer à 500 ou 1 000 m.
+- Les bâtiments utilisent pour cette passe de vrais volumes 2.5D et les textures existantes, **pas** de grandes illustrations générées transformées en panoramas plats. Un futur atlas de façades illustrées améliorera encore l'aspect.
+
+### Inventaire d'assets pour une passe graphique ultérieure
+
+| Priorité | Asset | Règle |
+|---|---|---|
+| 1 | Atlas partagé de portes, arches, fenêtres, volets et encadrements | 1 atlas PNG/WebP haute qualité, 4–8 variantes, transparence propre |
+| 2 | Tuiles de toit méditerranéennes dessinées | Texture partageable sur les deux pans et petites tourelles, pas de barres déconnectées |
+| 3 | Deux bandes d'auvents illustrés (marché) | Surfaces légères attachées au mur, UV stables, 2 palettes |
+| 4 | Feuillages, pots, fleurs et lanternes | Sprites 2.5D à transparence contrôlée, affichés seulement près du joueur |
+| 5 | Éléments de Griffe | Rebord, gouttière, prise et balisage distinctif, **uniquement** quand leurs collisions et commandes existeront |
+
+**Tests ajoutés :** densité et cours ouvertes, formes variées par quartier, génération reproductible, distance entre maisons voisines sur un côté, marge devant la piste, exclusion du faux raccord et véritables surfaces inclinées partageant les maillages. Cette refonte ne modifie ni les poissons, ni le timing des obstacles mobiles, ni les commandes tactiles.

@@ -170,3 +170,8 @@ Après 400 m, un groupe de pigeons traverse la piste. Après 500 m, un chariot d
 ## v0.18.1 — Quartiers visuels (prototype de progression)
 
 La ville change maintenant de quartier tous les **325 m** pour faciliter les tests : Vieille ville → Marché (auvents et étals) → Jardins suspendus (balcons et feuillage) → Toits du crépuscule (lanternes et couleurs nocturnes). Les maisons ont plusieurs silhouettes et leurs crépis utilisent les textures existantes. Le ciel, la brume, l'éclairage et la teinte du panorama HQ changent progressivement. Le réglage de production pourra être porté à 500 ou 1000 mètres en modifiant `DISTRICT_LENGTH_METRES` dans `src/game/districts.ts`. Cette passe est **purement visuelle** ; l'énergie des poissons et Griffe suivront après validation du décor.
+
+
+## v0.18.2 — Des maisons qui ressemblent à des maisons
+
+Refonte du décor autour de la piste : les parcelles sont distribuées tous les 12 m (au lieu d'un bâtiment fixe tous les 36 m), avec de petites cours, des maisons basses et hautes et cinq silhouettes géométriques vraiment différentes. Les toits en plaques inclinées ont été remplacés par des volumes de toiture corrects ; auvents rayés, balcons et tourelles appartiennent désormais aux volumes. Ces modules partagent leur géométrie et réutilisent les textures existantes pour rester adaptés aux téléphones. La route, les collisions et le Y sont inchangés. Plan d'assets et règles de densité détaillés dans [GAMEPLAY.md](docs/GAMEPLAY.md).
