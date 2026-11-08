@@ -1,0 +1,52 @@
+name: Capture real Three.js art screenshots
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/game/IllustratedHouseArt.ts'
+      - 'src/game/ArtWorld.ts'
+      - 'src/game/PurrkourGame.ts'
+      - 'src/App.tsx'
+      - 'package.json'
+      - 'scripts/capture-art.mjs'
+      - '.github/workflows/capture-art.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    name: Capture WebGL screenshots in headless Chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+      - name: Build production game
+        env:
+          GITHUB_PAGES: 'true'
+        run: pnpm build
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Start the actual game
+        run: |
+          pnpm exec vite preview --host 127.0.0.1 --port 4173 > /tmp/purrkour-preview.log 2>&1 &
+          echo $! > /tmp/purrkour-preview.pid
+      - name: Capture 4 districts in both visual modes
+        run: node scripts/capture-art.mjs
+      - name: Upload screenshots and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: purrkour-real-threejs-art-preview
+          path: screenshots/illustrated-facade-test/
+          if-no-files-found: warn
