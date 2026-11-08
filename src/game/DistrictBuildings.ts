@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {
   DISTRICTS,type HouseProfile,type DistrictKey,
 } from './districts';
+import {atlasCells,facadeTileIndices,roofTileIndex} from './paintedFacadeAtlas';
 
 export interface DistrictMaterialSources{
   readonly cream:THREE.MeshLambertMaterial;
@@ -27,6 +28,9 @@ export interface DistrictMaterialSources{
 export class DistrictBuildings{
   private readonly materials:THREE.Material[]=[];
   private readonly textures:THREE.Texture[]=[];
+  private paintedFacadesReady=false;
+  private paintedRoofsReady=false;
+  private disposed=false;
   private readonly facade=new Map<DistrictKey,readonly [THREE.MeshLambertMaterial,THREE.MeshLambertMaterial]>();
   private readonly roofs=new Map<DistrictKey,THREE.MeshLambertMaterial>();
   private readonly accents=new Map<DistrictKey,THREE.MeshLambertMaterial>();
@@ -120,15 +124,101 @@ export class DistrictBuildings{
     this.textures.push(t);return t;
   }
 
-  /** Reuse already-loaded painting from the project; do not duplicate GPU maps. */
+  /**
+   * Load raster artwork derived from the originally generated painted texture
+   * reference. Four 128px plaster tiles and two 128px roof tiles. GPU textures
+   * are cropped ONCE per load, never during the animation loop.
+   *
+   * A failed request leaves the existing stucco/roof textures untouched.
+   */
+  loadPaintedTextures():void{
+    const loader=new THREE.TextureLoader();
+    const base=`${import.meta.env.BASE_URL}assets/textures/`;
+    const load=(
+      filename:string,columns:number,rows:number,
+      ready:(tiles:readonly THREE.CanvasTexture[])=>void,
+    ):void=>{
+      loader.load(
+        base+filename,
+        (source)=>{
+          if(this.disposed){source.dispose();return;}
+          const image=source.image as (CanvasImageSource & {
+            width:number;height:number;
+          })|undefined;
+          if(!image||image.width!==columns*128||image.height!==rows*128){
+            source.dispose();
+            console.warn('Purrkour: invalid painted atlas',filename);
+            return;
+          }
+          const cells=atlasCells(image.width,image.height,columns,rows);
+          const tiles:THREE.CanvasTexture[]=[];
+          for(const cell of cells){
+            const canvas=document.createElement('canvas');
+            canvas.width=cell.width;
+            canvas.height=cell.height;
+            const ctx=canvas.getContext('2d');
+            if(!ctx)continue;
+            ctx.drawImage(
+              image,cell.x,cell.y,cell.width,cell.height,
+              0,0,cell.width,cell.height,
+            );
+            const texture=new THREE.CanvasTexture(canvas);
+            texture.colorSpace=THREE.SRGBColorSpace;
+            texture.wrapS=THREE.ClampToEdgeWrapping;
+            texture.wrapT=THREE.ClampToEdgeWrapping;
+            texture.minFilter=THREE.LinearMipmapLinearFilter;
+            texture.magFilter=THREE.LinearFilter;
+            texture.anisotropy=4;
+            tiles.push(texture);
+            this.textures.push(texture);
+          }
+          source.dispose();
+          if(tiles.length===columns*rows)ready(tiles);
+        },
+        undefined,
+        ()=>console.warn('Purrkour: painted atlas unavailable:',filename),
+      );
+    };
+
+    load('facades_painted_v1.png',2,2,tiles=>{
+      this.paintedFacadesReady=true;
+      for(const [key,pair] of this.facade){
+        const indexes=facadeTileIndices(key);
+        for(let i=0;i<2;i++){
+          const material=pair[i]!;
+          material.map=tiles[indexes[i]!]!;
+          material.color.set(key==='twilight'?'#d6cbea':
+            key==='gardens'?'#e5faeb':'#ffffff');
+          material.needsUpdate=true;
+        }
+      }
+    });
+    load('roofs_painted_v1.png',2,1,tiles=>{
+      this.paintedRoofsReady=true;
+      for(const [key,material] of this.roofs){
+        material.map=tiles[roofTileIndex(key)]!;
+        material.color.set(key==='twilight'?'#c6c0de':'#ffffff');
+        material.needsUpdate=true;
+      }
+    });
+  }
+
+  /**
+   * If legacy maps finish loading after the painted maps, do not regress
+   * back to the old cheap appearance.
+   */
   refreshTextures():void{
     for(const [key,pair] of this.facade){
-      pair[0].map=this.sources.cream.map;
-      pair[1].map=this.sources.peach.map;
-      pair[0].needsUpdate=true;
-      pair[1].needsUpdate=true;
-      const roof=this.roofs.get(key);
-      if(roof){roof.map=this.sources.roof.map;roof.needsUpdate=true;}
+      if(!this.paintedFacadesReady){
+        pair[0].map=this.sources.cream.map;
+        pair[1].map=this.sources.peach.map;
+        pair[0].needsUpdate=true;
+        pair[1].needsUpdate=true;
+      }
+      if(!this.paintedRoofsReady){
+        const roof=this.roofs.get(key);
+        if(roof){roof.map=this.sources.roof.map;roof.needsUpdate=true;}
+      }
     }
   }
 
@@ -358,6 +448,7 @@ export class DistrictBuildings{
   }
 
   dispose():void{
+    this.disposed=true;
     this.materials.forEach(m=>m.dispose());
     this.textures.forEach(t=>t.dispose());
     this.boxGeometry.dispose();
