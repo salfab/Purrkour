@@ -331,13 +331,13 @@ export class ArtWorld {
     atlas.minFilter=THREE.LinearFilter;
     this.textures.push(atlas);
 
-    // Transparent, illustrated rear-running animation (4-frame atlas).
+    // Clean, transparent rear-running PNG animation (4 frames of 96×96).
     // The procedural Canvas rear cat is only a fallback during loading/error.
     const rearAtlas=new THREE.TextureLoader().load(
-      `${import.meta.env.BASE_URL}assets/character/cat_rear_strip.webp`,
+      `${import.meta.env.BASE_URL}assets/character/cat_rear_clean.png`,
       loaded=>{
         try{
-          // Original WebP contains stray saturated red pixels below the paws.
+          // New PNG source has clean transparent margins; keep per-frame RGBA isolation.
           this.rearFrames=isolateCharacterFrames(loaded.image as HTMLImageElement,4,1,'rear');
           this.textures.push(...this.rearFrames);
           this.rearAtlasReady=this.rearFrames.length===4;

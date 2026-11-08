@@ -133,3 +133,8 @@ Le pouvoir se voit désormais **sur le chat lui-même** : halo, impulsion dorée
 Les **8 poses de profil** conservent leur source PNG et les **4 poses arrière** leur source WebP. Les deux atlases sont découpés **une seule fois au chargement** en textures Canvas RGBA individuelles, avec `ClampToEdgeWrapping`, `LinearFilter` et mipmaps désactivées. Chaque pose est indépendante : le GPU ne peut plus échantillonner la pose voisine. Le miroir gauche/droite réutilise les mêmes poses de profil.
 
 La source WebP arrière contient des pixels rouges saturés sous les pattes : un nettoyage ciblé des pixels du bas les rend transparents sans modifier les coussinets roses ou le pelage. Les poissons et décorations restent des sprites Canvas autonomes ; les matériaux de piste, façade et terrasse conservent leur répétition et leurs filtres adaptés aux surfaces 3D.
+
+
+## Atlas arrière nettoyé (v0.17.3)
+
+Le chat de dos utilise désormais `public/assets/character/cat_rear_clean.png` : quatre poses illustrées transparentes de 96×96 px sans parasites rouges sous les pattes. Le chargement en textures indépendantes reste identique. Les profils gauche/droite et les poissons ne sont pas modifiés.

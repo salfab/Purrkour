@@ -308,3 +308,8 @@ Implémentation : `src/game/RushEffects.ts` utilise deux textures Canvas réutil
 Sur certains téléphones, les poses arrière présentaient des couleurs rouges parasites aux pattes. Vérification de l'asset : ces pixels existent dans l'image source et ne sont **pas seulement** causés par le filtrage. Le module `src/game/characterFrames.ts` découpe les 4 poses arrière WebP et 8 poses de profil PNG en textures **RGBA indépendantes**, configurées sans mipmaps, avec `LinearFilter` et `ClampToEdgeWrapping`. Il supprime, pour les poses arrière uniquement, les pixels rouges très saturés sous les pattes, tout en conservant le rose normal des coussinets. Ce nettoyage est déterministe et testé dans `tests/characterFrames.test.ts`.
 
 Les poissons et objets décoratifs sont déjà des sprites à texture unique ; les textures de sol et de façades doivent, elles, continuer à se répéter. Aucun changement aux contrôles, au gameplay ou à la géométrie.
+
+
+### v0.17.3 — Source de dos nettoyée (✅)
+
+Le WebP arrière de 72 pixels par pose comportait du bruit de compression et des pixels colorés autour des pattes. Remplacement par un PNG transparent à quatre poses de 96 × 96 px, extrait de l'illustration originale plus grande, avec marge interne. Le découpage en textures séparées, le filtrage linéaire sans mipmaps et le clamp sont conservés. Les sprites de profil et les poissons ne sont pas modifiés. Tests : dimensions, canal alpha, chargement et chemin d'asset.
