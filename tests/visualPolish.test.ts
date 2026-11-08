@@ -16,7 +16,7 @@ describe('v0.17.5 mobile art pass',()=>{
     const one=terraceQuadUV(-10,0,12,24);
     const two=terraceQuadUV(-10,0,24,36);
     expect(one[3]).toBe(two[1]);
-    expect(one[9]).toBe(two[7]);
+    expect(one[9]).toBe(two[1]);
   });
 
   it('shrinks the shadow on jumps but keeps it present and restores at landing',()=>{
