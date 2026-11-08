@@ -47,8 +47,8 @@ describe('v0.17.5 mobile art pass',()=>{
     expect(before[3]).toBe(main[1]);
     expect(before[9]).toBe(main[1]);
     // Each repeat spans several metres, not tiny bricks/pied-de-poule.
-    expect(main[4]-main[0]).toBeCloseTo(5/5.5);
-    expect(main[3]-main[1]).toBeCloseTo(.5/5.5);
+    expect(main[4]! - main[0]!).toBeCloseTo(5/5.5);
+    expect(main[3]! - main[1]!).toBeCloseTo(.5/5.5);
   });
 
   it('does not add floating streak sprites to the route during a speed boost',()=>{
