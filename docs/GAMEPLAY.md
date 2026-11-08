@@ -301,3 +301,10 @@ Les tests automatisés **ne prouvent pas** la qualité perceptive sur mobile : c
 Retour d'usage : une jauge et une légère teinte du chat ne suffisent pas à rendre le Rush perceptible pendant le gameplay. Ajout d'une aura dorée persistante et d'une impulsion de déclenchement autour du chat, plus une traînée de 14 étincelles suivant la trajectoire réelle (même pendant le détour en Y). Un vignettage discret sur les bords, de petites lignes de vitesse et une bannière « ×2 POINTS / AIMANT » sont affichés uniquement pendant le Rush. Aucune modification de la physique, du cadrage ou de l'économie des poissons.
 
 Implémentation : `src/game/RushEffects.ts` utilise deux textures Canvas réutilisées et 16 sprites mis à jour sans allocations géométriques par frame, pour limiter le coût sur mobile. Le module pur `rushVisualState.ts` fournit l'état du déclenchement, de l'aura et des traînées ; des tests Vitest vérifient leur durée, le masquage pendant la pause et le suivi des routes courbes. Les animations CSS sont coupées par `prefers-reduced-motion`.
+
+
+### v0.17.2 — Correction technique des sprites du chat
+
+Sur certains téléphones, les poses arrière présentaient des couleurs rouges parasites aux pattes. Vérification de l'asset : ces pixels existent dans l'image source et ne sont **pas seulement** causés par le filtrage. Le module `src/game/characterFrames.ts` découpe les 4 poses arrière WebP et 8 poses de profil PNG en textures **RGBA indépendantes**, configurées sans mipmaps, avec `LinearFilter` et `ClampToEdgeWrapping`. Il supprime, pour les poses arrière uniquement, les pixels rouges très saturés sous les pattes, tout en conservant le rose normal des coussinets. Ce nettoyage est déterministe et testé dans `tests/characterFrames.test.ts`.
+
+Les poissons et objets décoratifs sont déjà des sprites à texture unique ; les textures de sol et de façades doivent, elles, continuer à se répéter. Aucun changement aux contrôles, au gameplay ou à la géométrie.

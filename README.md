@@ -126,3 +126,10 @@ Les poissons de la réserve persistante **ne sont pas encore dépensables** : la
 ## Retour visuel Purr Rush (v0.17.1)
 
 Le pouvoir se voit désormais **sur le chat lui-même** : halo, impulsion dorée et étincelles de traînée, en plus d'un contour lumineux discret de l'écran. Le centre de la piste reste visible. La traînée suit même les embranchements courbes. Deux petites textures Canvas et des sprites recyclés limitent l'usage GPU ; aucun modèle 3D supplémentaire. Les effets sont testés dans `tests/rushVisualState.test.ts`.
+
+
+## Sprites transparents sans artefacts (v0.17.2)
+
+Les **8 poses de profil** conservent leur source PNG et les **4 poses arrière** leur source WebP. Les deux atlases sont découpés **une seule fois au chargement** en textures Canvas RGBA individuelles, avec `ClampToEdgeWrapping`, `LinearFilter` et mipmaps désactivées. Chaque pose est indépendante : le GPU ne peut plus échantillonner la pose voisine. Le miroir gauche/droite réutilise les mêmes poses de profil.
+
+La source WebP arrière contient des pixels rouges saturés sous les pattes : un nettoyage ciblé des pixels du bas les rend transparents sans modifier les coussinets roses ou le pelage. Les poissons et décorations restent des sprites Canvas autonomes ; les matériaux de piste, façade et terrasse conservent leur répétition et leurs filtres adaptés aux surfaces 3D.

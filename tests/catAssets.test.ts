@@ -6,7 +6,7 @@ import {describe,it,expect} from 'vitest';
 const assetPath=resolve(process.cwd(),'public/assets/character/cat_rear_strip.webp');
 
 describe('illustrated rear cat sprite atlas',()=>{
-  it('is a complete transparent four-frame WebP, not the old Canvas placeholder',()=>{
+  it('is a complete transparent four-frame source WebP, decoded to isolated Canvas frames',()=>{
     const buffer=readFileSync(assetPath);
     expect(buffer.toString('ascii',0,4)).toBe('RIFF');
     expect(buffer.toString('ascii',8,12)).toBe('WEBP');
