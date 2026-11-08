@@ -609,7 +609,7 @@ export class ArtWorld {
   }
   resetRun(seed:number):void{
     for(const chunk of this.chunks.values()){
-      chunk.traverse(obj=>{if(obj instanceof THREE.Mesh)obj.geometry.dispose();});
+      chunk.traverse(obj=>{if(obj instanceof THREE.Mesh && !obj.userData.sharedHouseSpriteGeometry)obj.geometry.dispose();});
       this.group.remove(chunk);
     }
     this.chunks.clear();
@@ -628,7 +628,7 @@ export class ArtWorld {
     for(const [index,chunk] of this.chunks){
       if(index*this.chunkLength<ROUTE_FORK.chooseZ)continue;
       chunk.traverse(obj=>{
-        if(obj instanceof THREE.Mesh)obj.geometry.dispose();
+        if(obj instanceof THREE.Mesh && !obj.userData.sharedHouseSpriteGeometry)obj.geometry.dispose();
         if(obj instanceof THREE.Sprite){
           for(const [id,p] of this.pickups)if(p.sprite===obj)this.pickups.delete(id);
         }
@@ -657,7 +657,7 @@ export class ArtWorld {
     for(const [i,chunk] of this.chunks){
       if(i>=start&&i<=end)continue;
       chunk.traverse(obj=>{
-        if(obj instanceof THREE.Mesh)obj.geometry.dispose();
+        if(obj instanceof THREE.Mesh && !obj.userData.sharedHouseSpriteGeometry)obj.geometry.dispose();
         if(obj instanceof THREE.Sprite && (obj.material===this.pickupMaterials.fish||obj.material===this.pickupMaterials.gold||obj.material===this.pickupMaterials.sky||obj.material===this.pickupMaterials.boost)){
           for(const [id,p] of this.pickups)if(p.sprite===obj)this.pickups.delete(id);
         }

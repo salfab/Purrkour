@@ -199,3 +199,14 @@ Le rendu standard v0.18.4 (atlas de façades, fenêtres, portes, toits) est cons
 ## v0.18.6 — Test A/B de maisons illustrées en 2.5D
 
 La v0.18.6 propose une version optionnelle avec **maisons complètes sur plans transparents**, composées à partir des atlas peints existants. Comparez [l'apparence en sprites](https://salfab.github.io/Purrkour/?districtPreview=1&housePreview=sprites) avec [l'architecture actuelle](https://salfab.github.io/Purrkour/?districtPreview=1), ou [les deux dans une même rue](https://salfab.github.io/Purrkour/?districtPreview=1&housePreview=compare). Le changement reste cosmétique et n'ajoute pas encore de mécanique Griffe. Un workflow Chromium capture de vrais screenshots WebGL en quatre quartiers depuis des positions fixes.
+
+
+## v0.18.7 — Véritables sprites illustrés de façades
+
+Les quatre fichiers lossless WebP RGBA de `public/assets/illustrated-houses` proviennent du découpage des **illustrations originales** ; les pixels sont identiques aux PNG transparents, sans recompression destructive. Le mode sprite est **maintenant activé par défaut** sur les quatre quartiers. Les façades sont des plans 2.5D dans Three.js, rapprochés légèrement de la route, avec chargement paresseux du matériau et géométrie partagée ; ni les collisions ni les commandes ne changent.
+
+- [Jouer avec les sprites](https://salfab.github.io/Purrkour/?districtPreview=1)
+- [Comparer avec les anciens blocs 3D](https://salfab.github.io/Purrkour/?districtPreview=1&housePreview=off)
+- [Alterner les deux approches](https://salfab.github.io/Purrkour/?districtPreview=1&housePreview=compare)
+
+Ce sont des **premiers sprites de référence**, un bâtiment par quartier. Leur répétition et leurs silhouettes doivent encore être validées sur téléphone avant de produire davantage de variantes. Le script de capture Chromium n'est pas nécessaire pour tester cette version et reste séparé du déploiement normal.
