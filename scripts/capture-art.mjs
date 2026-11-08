@@ -2,7 +2,9 @@ import {chromium} from 'playwright';
 import {mkdir,writeFile} from 'node:fs/promises';
 
 const houseStudy=process.argv.includes('--house');
-const directory=houseStudy?'screenshots/volume-house-test':'screenshots/illustrated-facade-test';
+const districtStudy=process.argv.includes('--districts');
+const descentStudy=process.argv.includes('--descent');
+const directory=houseStudy?'screenshots/volume-house-test':districtStudy?'screenshots/district-houses':descentStudy?'screenshots/descent':'screenshots/illustrated-facade-test';
 await mkdir(directory,{recursive:true});
 const browser=await chromium.launch({
   headless:true,
@@ -14,14 +16,19 @@ const browser=await chromium.launch({
 });
 const results=[];
 const base=process.env.PURRKOUR_CAPTURE_URL || 'http://127.0.0.1:4173/Purrkour/';
-const items=houseStudy?[
+const items=descentStudy?[
+  {district:'entry',distance:453},
+  {district:'first-gate',distance:464},
+  {district:'middle',distance:483},
+  {district:'exit',distance:510},
+]:houseStudy?[
   {district:'approach',distance:48},
   {district:'near',distance:56},
   {district:'passing',distance:66},
 ]:[
   {district:'old-town',distance:50},
   {district:'market',distance:150},
-  {district:'gardens',distance:250},
+  {district:'gardens',distance:districtStudy?220:250},
   {district:'twilight',distance:350},
 ];
 try{
@@ -41,7 +48,7 @@ try{
     }
   }
   for(const item of process.argv.includes('--study-only')?[]:items){
-    for(const style of houseStudy?['sprites','volume']:['sprites','compare']){
+    for(const style of houseStudy?['sprites','volume']:districtStudy||descentStudy?['volume']:['sprites','compare']){
       const context=await browser.newContext({
         viewport:{width:390,height:844},
         deviceScaleFactor:2,
@@ -65,7 +72,7 @@ try{
         console.error('[requestfailed]',request.url(),request.failure());
       });
       const query=new URLSearchParams({
-        districtPreview:'1',
+        districtPreview:descentStudy?'0':'1',
         housePreview:style,
         artShot:String(item.distance),
       });
@@ -79,6 +86,10 @@ try{
         );
         if(style==='volume')await page.waitForFunction(
           ()=>document.documentElement.dataset.volumeHouseReady==='true',null,{timeout:10000},
+        );
+        if(districtStudy&&item.district!=='market')await page.waitForFunction(
+          key=>['front','end',...(key==='old-town'?[]:['endalt'])].every(part=>document.documentElement.dataset['districtArt'+key.replaceAll('-','')+part]==='ready'),
+          item.district,{timeout:20000},
         );
       }catch(error){
         const html=await page.evaluate(()=>({

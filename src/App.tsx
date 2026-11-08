@@ -8,6 +8,7 @@ const initial: Snapshot = {
   routeChoice:null,routeStage:null,
   instinct:0,rush:0,rushCount:0,comboMultiplier:1,comboChain:0,
   rewardFeedback:'none',lastComboBonus:0,stumble:0,cartBounces:0,
+  descentActive:false,descentGates:0,descentPerfect:false,descentFeedback:false,
   districtIndex:0,districtName:'Vieille ville',
   nextDistrictName:'Quartier du marché',districtRemaining:325,districtWithin:0,
 };
@@ -41,7 +42,7 @@ export function App() {
     <canvas ref={canvas} className="stage" aria-label="Jeu Purrkour, parcours 3D" />
     <header className="hud">
       <div className="hud-stats">
-        <div className="chip"><small>DISTANCE</small><strong>{status.distance} m</strong><span> ↑ {status.altitude.toFixed(1)} m</span>
+        <div className="chip"><small>DISTANCE</small><strong>{status.distance} m</strong><span> ↕ {status.altitude.toFixed(1)} m</span>
           <span className="district-hud">{status.districtName} · {status.districtRemaining} m</span>
         </div>
         <div className="chip"><small>SCORE</small><strong>{status.score}</strong><span> 🐟 {status.fish}</span></div>
@@ -91,6 +92,15 @@ export function App() {
           :'⚡ PURR RUSH !'}
       </div>
     )}
+    {running&&status.descentActive&&(
+      <div className="descent-hud" aria-live="polite">
+        <strong>↘ DESCENTE · {status.descentGates}/3 PORTES</strong>
+        <small>SUIS LES ARCHES · RESTE AU SOL</small>
+      </div>
+    )}
+    {running&&status.descentFeedback&&(
+      <div className="descent-flash">{status.descentPerfect?'✨ DESCENTE PARFAITE !':'✨ PORTE FRANCHIE !'}</div>
+    )}
     {running&&status.routeStage!==null&&(status.routeStage!=='active'||status.distance<282)&&(
       <div className={`route-choice route-choice--${status.routeStage}`} aria-live="polite">
         {status.routeStage==='approach'?<>
@@ -126,6 +136,7 @@ export function App() {
             <li>Attrape des poissons, puis apprends à rebondir pour saisir les bonus les plus hauts.</li>
             <li>Choisis entre les poissons faciles au sol et les récompenses à risque.</li>
             <li>Vers 250 m, choisis ta route en te plaçant à gauche ou à droite.</li>
+            <li>Après la réunion des chemins, suis les trois arches de la descente pour gagner des points.</li>
             <li>La vitesse augmente naturellement pendant le run.</li>
           </ul>
           <button type="button" onClick={()=>game.current?.start()}>Commencer le run</button>

@@ -4,6 +4,7 @@ import {ROUTE_FORK,routeFromWorldX,activeRoute,type RouteChoice,type RouteStage}
 import {branchSteeringBounds,ROUTE_PREVIEW_END} from './routeGeometry';
 import {createRewardState,tickRewards,rewardBounce,rewardLanding,rewardFailure,rewardPickup,rewardPickupInReach,type RewardState,type RewardFeedback} from './rewards';
 import {movingObstaclesNear,movingObstacleOverlaps,cartBouncePossible,MOVING_RULES} from './movingObstacles';
+import {DESCENT,descentDrop,descentSpeedBonus} from './descent';
 export const WORLD = {
   trackWidth: 5,
   segmentLength: 100,
@@ -45,6 +46,7 @@ export interface Player {
   routeChoice:RouteChoice|null; routeChosenAt:number|null;
   rewards:RewardState;
   stumbleRemaining:number;cartBounces:number;
+  descentGates:number;descentChain:number;descentPerfect:boolean;descentFeedbackUntil:number;
   readonly hitMovingObstacles:Set<string>;
 }
 export interface Controls {
@@ -63,6 +65,7 @@ export interface Snapshot {
   instinct:number; rush:number; rushCount:number; comboMultiplier:number;
   comboChain:number; rewardFeedback:RewardFeedback; lastComboBonus:number;
   stumble:number;cartBounces:number;
+  descentActive:boolean;descentGates:number;descentPerfect:boolean;descentFeedback:boolean;
   districtIndex:number;districtName:string;nextDistrictName:string;
   districtRemaining:number;districtWithin:number;
 }
@@ -70,13 +73,14 @@ export function groundHeight(z: number): number {
   const cycle = Math.max(0, Math.floor(Math.max(0, z) / WORLD.rampPeriod));
   const local = Math.max(0, z - cycle * WORLD.rampPeriod);
   const fraction = Math.max(0, Math.min(1, (local - WORLD.rampStart) / (WORLD.rampEnd - WORLD.rampStart)));
-  return cycle * WORLD.rampRise + fraction * WORLD.rampRise;
+  return cycle * WORLD.rampRise + fraction * WORLD.rampRise - descentDrop(z);
 }
 export function isGap(z: number): boolean {
   if (z < 0) return false;
   // The 200–300 m segment contains the first fork. Keep its landing area
   // free of chasms while the camera is turning.
   if(z>=200&&z<430)return false;
+  if(z>=DESCENT.start&&z<DESCENT.end)return false;
   const local = z % WORLD.segmentLength;
   return local >= WORLD.gapStart && local <= WORLD.gapEnd;
 }
@@ -167,7 +171,8 @@ export function makePlayer(runSeed=0): Player {
   return { x: 0, y: 0, z: 0, vy: 0, grounded: true, coyote: .1, elapsed: 0,
     speed: WORLD.speedStart, boost: 0, anim: 0, score: 0, fish: 0, bounces: 0, failure: null,runSeed,
     routeChoice:null,routeChosenAt:null,rewards:createRewardState(),
-    stumbleRemaining:0,cartBounces:0,hitMovingObstacles:new Set<string>() };
+    stumbleRemaining:0,cartBounces:0,hitMovingObstacles:new Set<string>(),
+    descentGates:0,descentChain:0,descentPerfect:false,descentFeedbackUntil:0 };
 }
 export function simulate(player: Player, controls: Controls, collected: Set<string>, dt: number): void {
   if (player.failure) return;
@@ -177,7 +182,8 @@ export function simulate(player: Player, controls: Controls, collected: Set<stri
   player.boost = Math.max(0, player.boost - dt);
   const normalSpeed=Math.min(WORLD.speedMax,WORLD.speedStart+WORLD.acceleration*player.elapsed)
     +(player.boost>0?WORLD.boostSpeed:0);
-  player.speed=normalSpeed*(player.stumbleRemaining>0?MOVING_RULES.slowdownMultiplier:1);
+  player.speed=(normalSpeed+descentSpeedBonus(player.z))
+    *(player.stumbleRemaining>0?MOVING_RULES.slowdownMultiplier:1);
   player.anim += dt * (5.5 + 1.15 * player.speed);
   player.coyote = player.grounded ? .11 : Math.max(0, player.coyote - dt);
   if (controls.jump && (player.grounded || player.coyote > 0)) {
@@ -270,6 +276,20 @@ export function simulate(player: Player, controls: Controls, collected: Set<stri
     if(landed&&!player.failure)rewardLanding(player);
   }
   if (player.failure){rewardFailure(player);return;}
+  for(const gate of DESCENT.gates){
+    if(priorZ>=gate.z||player.z<gate.z)continue;
+    if(player.grounded&&Math.abs(player.x-gate.x)<.72){
+      player.descentGates++;
+      player.descentChain++;
+      player.score+=70*player.descentChain;
+      player.rewards.instinct=Math.min(100,player.rewards.instinct+8);
+      if(player.descentChain===DESCENT.gates.length){
+        player.descentPerfect=true;
+        player.score+=200;
+      }
+      player.descentFeedbackUntil=player.elapsed+1.5;
+    }else player.descentChain=0;
+  }
   for(const obstacle of moving){
     if(player.hitMovingObstacles.has(obstacle.id)
       ||!movingObstacleOverlaps(obstacle,player.x,player.z))continue;

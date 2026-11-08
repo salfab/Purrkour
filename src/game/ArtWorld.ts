@@ -13,6 +13,8 @@ import {DistrictBuildings} from './DistrictBuildings';
 import {houseProfile,houseProfilesForChunk} from './districts';
 import {IllustratedHouseArt,housePreviewMode} from './IllustratedHouseArt';
 import {PrototypeHouseArt,isVolumeStreet} from './PrototypeHouseArt';
+import {FishArt} from './FishArt';
+import {DESCENT,onDescent} from './descent';
 
 function canvasTexture(size: number, paint: (ctx: CanvasRenderingContext2D, size: number) => void): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -243,7 +245,10 @@ export class ArtWorld {
   private readonly peachMaterial:THREE.MeshLambertMaterial;
   private readonly roofMaterial:THREE.MeshLambertMaterial;
   private readonly crateMaterial:THREE.MeshLambertMaterial;
+  private readonly gateMaterial:THREE.MeshBasicMaterial;
+  private readonly gateAccent:THREE.MeshBasicMaterial;
   private readonly pickupMaterials:Record<Pickup['kind'],THREE.SpriteMaterial>;
+  private readonly fishArt:FishArt;
   private readonly propMaterials:{window:THREE.SpriteMaterial;flower:THREE.SpriteMaterial;banner:THREE.SpriteMaterial};
   private readonly wallPropMaterials:{window:THREE.MeshBasicMaterial;banner:THREE.MeshBasicMaterial};
   private readonly districtBuildings:DistrictBuildings;
@@ -288,9 +293,12 @@ export class ArtWorld {
     this.loadPaintedTexture('stucco_peach_v2.webp',this.peachMaterial,2.1,1.5);
     this.edgeMaterial=new THREE.MeshLambertMaterial({color:'#f3d39d'});
     this.gapLipMaterial=new THREE.MeshLambertMaterial({color:'#be9578'});
-    this.materials.push(this.edgeMaterial,this.gapLipMaterial);
+    this.gateMaterial=new THREE.MeshBasicMaterial({color:'#50d9c7'});
+    this.gateAccent=new THREE.MeshBasicMaterial({color:'#fff4c1'});
+    this.materials.push(this.edgeMaterial,this.gapLipMaterial,this.gateMaterial,this.gateAccent);
     const sprite=(t:THREE.Texture)=>{const m=new THREE.SpriteMaterial({map:tex(t),transparent:true,alphaTest:.05,depthWrite:false});this.materials.push(m);return m;};
     this.pickupMaterials={fish:sprite(iconTexture('fish')),gold:sprite(iconTexture('gold')),sky:sprite(iconTexture('gold')),boost:sprite(iconTexture('boost'))};
+    this.fishArt=new FishArt(this.pickupMaterials);
     this.propMaterials={window:sprite(iconTexture('window')),flower:sprite(iconTexture('flower')),banner:sprite(iconTexture('banner'))};
     const onWall=(material:THREE.SpriteMaterial):THREE.MeshBasicMaterial=>{
       const m=new THREE.MeshBasicMaterial({
@@ -473,6 +481,21 @@ export class ArtWorld {
     const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
     mesh.position.set(x,y,z);group.add(mesh);
   }
+  private addDescentGate(group:THREE.Group,z:number,x:number):void{
+    const arch=new THREE.Group();
+    arch.position.set(x,groundHeight(z),z);
+    for(const side of [-1,1]){
+      this.box(arch,side*.86,.65,0,.12,1.3,.12,this.gateMaterial);
+      this.box(arch,side*.86,.14,0,.2,.28,.2,this.gateAccent);
+    }
+    const curve=new THREE.Mesh(
+      new THREE.TorusGeometry(.86,.075,6,18,Math.PI),this.gateMaterial,
+    );
+    curve.position.y=1.28;
+    arch.add(curve);
+    this.box(arch,0,2.18,0,.43,.13,.13,this.gateAccent);
+    group.add(arch);
+  }
   private createChunk(index:number,runSeed:number,route:RouteChoice|null):THREE.Group{
     const from=index*this.chunkLength;const to=from+this.chunkLength;const group=new THREE.Group();
     // Exact ownership split: ArtWorld draws the trunk until 250 m and the
@@ -535,7 +558,7 @@ export class ArtWorld {
     // Each lip curves visually down into the lower street rather than ending
     // as a paper-thin horizontal sheet.
     for(const lip of gapEdgesInRange(visualStart,visualEnd,WORLD.gapStart,WORLD.gapEnd,WORLD.segmentLength)){
-      if(lip>=200&&lip<430)continue;
+      if(!isGap(lip))continue;
       const floor=groundHeight(lip);
       const depth=1.8;
       this.box(group,0,floor-depth/2,lip,WORLD.trackWidth,depth,.13,this.gapLipMaterial);
@@ -554,11 +577,16 @@ export class ArtWorld {
       if(c.z<visualStart||c.z>=visualEnd)continue;
       this.box(group,c.x,groundHeight(c.z)+c.height/2,c.z,c.width,c.height,c.depth,this.crateMaterial);
     }
+    for(const gate of DESCENT.gates){
+      if(gate.z>=visualStart&&gate.z<visualEnd)this.addDescentGate(group,gate.z,gate.x);
+    }
     for(const p of pickupsNear(visualStart,visualEnd,runSeed,activeRoute(visualStart+1,route))){
       if(p.z<visualStart||p.z>=visualEnd)continue;
       const sprite=new THREE.Sprite(this.pickupMaterials[p.kind]);
       const size=p.kind==='sky'?1.15:p.kind==='gold'?.96:p.kind==='boost'?.85:.7;
-      sprite.scale.set(size,size,1);
+      // The illustrated fish images are 2:1; preserve their proportions.
+      if(p.kind==='boost')sprite.scale.set(size,size,1);
+      else sprite.scale.set(size*1.3,size*.65,1);
       sprite.position.set(p.x,p.y,p.z);
       group.add(sprite);this.pickups.set(p.id,{sprite,item:p});
     }
@@ -587,7 +615,7 @@ export class ArtWorld {
         this.prototypeHouse?5.5:sprites ? 7.6 : house.depth/2+.48,
       ))continue;
       if(this.prototypeHouse){
-        this.prototypeHouse.add(group,house.z,groundHeight(house.z),house.side,index+(house.side===1?1:0));
+        this.prototypeHouse.add(group,house.z,groundHeight(house.z),house.side,index+(house.side===1?1:0),house.district.key);
         continue;
       }
       if(sprites){
@@ -710,18 +738,20 @@ export class ArtWorld {
     material.color.set(player.rewards.rushRemaining>0?'#fff1bd':'#ffffff');
     this.drawCat(frame,view==='rear',mirrorProfileForView(view));
     const isRear=view==='rear';
+    const sliding=player.grounded&&onDescent(player.z);
     this.catSprite.scale.set(
-      1.9*(isRear?rear.scaleX:1),
-      1.9*(isRear?rear.scaleY:1),
+      1.9*(isRear?rear.scaleX:1)*(sliding?1.07:1),
+      1.9*(isRear?rear.scaleY:1)*(sliding?.79:1),
       1,
     );
-    this.catSprite.position.y=.85+(isRear?rear.yOffset:0);
+    this.catSprite.position.y=(sliding?.68:.85)+(isRear?rear.yOffset:0);
     material.rotation=isRear?rear.tilt:0;
   }
   dispose():void{
     this.resetRun(0);
     this.shadow.geometry.dispose();
     this.illustratedBuildings.dispose();
+    this.fishArt.dispose();
     this.prototypeHouse?.dispose();
     this.districtBuildings.dispose();
     this.movingArt.dispose();

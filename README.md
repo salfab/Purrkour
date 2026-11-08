@@ -51,9 +51,10 @@ Avec le serveur de développement local (port 4173 dans ces exemples) :
 Après avoir réglé les variables de capture ci-dessus,
 `node scripts/capture-art.mjs --house` enregistre les vues de face et de trois
 quarts, puis trois positions de caméra dans les deux modes, sous
-`screenshots/volume-house-test/`. La façade et les tuiles sont deux textures
-peintes distinctes ; l'auvent et la toiture sont de vraies surfaces 3D. Cette
+`screenshots/volume-house-test/`. Les façades et les tuiles sont des textures
+peintes distinctes ; l'auvent et la toiture sont de vraies surfaces 3D. Les
 maisons restent décoratives et ne possèdent pas de collisions de gameplay.
+Pour capturer les quatre quartiers rapidement, lancer `node scripts/capture-art.mjs --districts`.
 
 ## Contrôles
 
@@ -245,4 +246,4 @@ Ce sont des **premiers sprites de référence**, un bâtiment par quartier. Leur
 
 ## v0.18.8 — Maisons illustrées en volume
 
-La rue utilise par défaut trois variantes de maisons espacées, avec des façades peintes sur leurs murs donnant sur la rue et sur leurs murs de bout, des toits en relief et des auvents. Les bâtiments sont décoratifs et laissent la piste dégagée. Les trois variantes partagent pour l'instant le même style de quartier ; la différenciation des quatre quartiers et la validation sur téléphone restent à faire.
+La rue utilise des maisons espacées, avec des façades peintes sur leurs murs donnant sur la rue et sur leurs murs de bout, des toits en relief et des auvents. Les bâtiments sont décoratifs et laissent la piste dégagée. Chaque quartier possède ses propres façades ; le marché dispose de trois variantes, les jardins et le crépuscule de deux variantes de mur de bout. La variété et les performances restent à valider sur téléphone.

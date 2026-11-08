@@ -6,6 +6,19 @@
 
 > **Légende** — ✅ implémenté dans le code ; 🟡 partiel/prototype ; ⬜ spécification, pas encore codé.
 
+## État consolidé — reprise des échanges, v0.18.8
+
+Les sections datées plus bas conservent l'historique ; lorsqu'elles se contredisent, cet état et le code font foi. Les derniers échanges accessibles de la conversation d'origine portent surtout sur le décor. Les phases et les évolutions gameplay ci-dessous reprennent également la feuille de route déjà présente dans ce document : elles ne prétendent pas reconstituer des échanges devenus inaccessibles.
+
+- **✅ Boucle actuelle :** course, contrôle au pouce, saut et rebond ; poissons accessibles au saut ou seulement après rebond ; score, boost, jauge d'Instinct, Purr Rush et combo d'adresse. La musique originale de l'auteur est intégrée.
+- **✅ Première variété :** huit patterns initiaux, choix de route, pigeons et chariots mobiles. Ceux-ci sont bien implémentés malgré le libellé « prévu » de la section historique v0.18. Leurs règles et leur introduction sont détaillées à la section 18.
+- **🟡 Rythme :** les quatre étapes Flow → choix → tension → récompense figurent dans le directeur, mais leurs positions restent fixes sur des segments de 100 m. La durée en secondes, l'adaptation au temps de réaction et les vraies vagues de tension ne sont pas encore implémentées.
+- **🟡 Première variation après la réunion :** entre 450 et 520 m, les deux parcours empruntent une descente de 7 m, avec jusqu'à +1,7 m/s et trois arches à 468, 487 et 506 m. Rester au sol et changer de ligne rapporte des points et de l'Instinct ; l'enchaînement complet donne un bonus. Une arche manquée ne termine pas le run. Le fossé et la caisse prévus dans cette séquence sont retirés ; les pigeons précèdent la descente et le chariot vient ensuite. Prototype à tester sur téléphone.
+- **⬜ Prochaine passe gameplay :** varier les familles de patterns, alterner montée de tension et récupération, introduire séparément les mécaniques avant de les combiner, préserver une voie sûre et simuler les parcours à différentes vitesses et avec boost. Les durées et paliers des sections 3 et 5 sont des hypothèses à valider, pas des règles actives.
+- **⬜ Progression à plus long terme :** missions, accomplissements, compétences et boutique utilisant la réserve de poissons ; équilibrer l'économie et les deux voies sans rendre l'achat obligatoire. Griffe et les poissons consommables restent des pistes à concevoir, sans collisions ni commandes déjà actives.
+- **✅ Décor v0.18.8 et passe quartiers locale :** les maisons par défaut sont des volumes simples avec façades peintes sans ciel, faces latérales assorties, toit et auvent ; des gabarits espacés forment des petites cours. Chaque quartier possède ses façades : le marché en a trois variantes peintes, les autres une façade de rue chacun et les jardins et le crépuscule deux variantes de mur de bout. Leurs éléments sont décoratifs. Le mode `housePreview=sprites` reste disponible pour comparaison. La répétition, la jonction et les performances doivent être vérifiées dans le vrai jeu et sur téléphone.
+- **Décision de direction artistique :** chercher la rue méditerranéenne peinte de l'image de référence : façades détaillées et lisibles, sols latéraux distincts, horizons raster et maisons avec profondeur, sans masquer les obstacles. La perspective des virages et le ciel au-dessus du panorama restent à évaluer.
+
 ## 1. Les piliers
 
 1. **Un seul doigt, un contrôle immédiat.** Glisser horizontalement dans la moitié basse de l'écran déplace le chat ; lever le doigt déclenche le saut. La caméra doit toujours rendre le sens du déplacement évident.

@@ -10,6 +10,7 @@ import {cameraBlendFactor,frameRouteCamera} from './routeCamera';
 import {comboMultiplier} from './rewards';
 import {RushEffects} from './RushEffects';
 import {DISTRICTS,districtAt,districtBlend} from './districts';
+import {descentSpeedBonus,onDescent} from './descent';
 
 export type UpdateListener = (snapshot: Snapshot) => void;
 
@@ -90,6 +91,9 @@ export class PurrkourGame {
       this.player.z=distance;
       this.player.y=groundHeight(distance);
       this.player.grounded=true;
+      this.player.elapsed=distance/6;
+      this.player.speed=Math.min(WORLD.speedMax,WORLD.speedStart+WORLD.acceleration*this.player.elapsed)
+        +descentSpeedBonus(distance);
       if(distance>=250){
         this.player.routeChoice='fish';
         this.player.routeChosenAt=0;
@@ -233,6 +237,10 @@ export class PurrkourGame {
       lastComboBonus:this.player.rewards.lastBonus,
       stumble:this.player.stumbleRemaining,
       cartBounces:this.player.cartBounces,
+      descentActive:onDescent(this.player.z),
+      descentGates:this.player.descentGates,
+      descentPerfect:this.player.descentPerfect,
+      descentFeedback:this.player.elapsed<this.player.descentFeedbackUntil,
       districtIndex:district.ordinal,
       districtName:district.theme.name,
       nextDistrictName:district.next.name,

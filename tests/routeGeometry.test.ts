@@ -116,6 +116,7 @@ describe('short lateral detour and fake 45-degree merge',()=>{
   });
   it('keeps the detour free of gameplay gaps',()=>{
     for(let s=250;s<=ROUTE_DETOUR_END;s+=.25)expect(isGap(s)).toBe(false);
-    expect(isGap(468.7)).toBe(true);
+    expect(isGap(468.7)).toBe(false);
+    expect(isGap(568.7)).toBe(true);
   });
 });
