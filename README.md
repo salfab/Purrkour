@@ -150,3 +150,8 @@ Pour le panorama, `ScenicBackdrop.ts` essaie en priorité `public/assets/backgro
 ## v0.17.5 — Visuels de boost et texture du terrain
 
 Le jeu utilise bien le panorama HQ JPEG déjà présent dans `public/assets/backgrounds/`. Le boost de vitesse conserve le sprite de profil original à traits jaunes (image 7), ajoute de petites lignes de vitesse et utilise des versions enrichies des quatre poses arrière nettoyées. L'ombre diminue progressivement pendant les sauts. Le motif des terrasses en contrebas a été agrandi et ses UV sont continus entre les segments. Voir `docs/GAMEPLAY.md`.
+
+
+## v0.17.6 — Boost lisible, pavés agrandis
+
+Le boost de profil utilise l'image dessinée originale avec ses traits jaunes, sans la traînée de sprites flottants ajoutée en v0.17.5. Les variantes arrière gardent des accents dorés plus sobres. Le motif sur la piste est agrandi à 5,5 m par répétition, avec les mêmes UV sur la bifurcation pour éviter les faux raccords.

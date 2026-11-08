@@ -7,7 +7,7 @@ import {catViewFromLocalX,mirrorProfileForView} from './catView';
 import {isolateCharacterFrames,setCharacterMirror,configureCharacterTexture} from './characterFrames';
 import {catRearPose} from './catMotion';
 import {createRearBoostFrames} from './characterFrames';
-import {terraceQuadUV,jumpShadowAppearance,profileFrame} from './visualPolish';
+import {terraceQuadUV,trackQuadUV,jumpShadowAppearance,profileFrame} from './visualPolish';
 
 function canvasTexture(size: number, paint: (ctx: CanvasRenderingContext2D, size: number) => void): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -270,7 +270,9 @@ export class ArtWorld {
     this.peachMaterial=mat(plasterTexture(true));
     this.roofMaterial=mat(roofTexture());
     this.crateMaterial=mat(woodTexture());
-    this.loadPaintedTexture('track_pavers.webp',this.groundMaterial,2.1,.85);
+    // Make the path's paving legible on mobile. The UVs now cover 5.5 metres
+    // per painted tile and match the Y preview exactly.
+    this.loadPaintedTexture('track_pavers.webp',this.groundMaterial,1,1);
     // Old UV * 3.3/4.2 tiled the lower road into a distracting houndstooth.
     // The mesh now uses continuous 8-metre tiles with no extra repeat.
     this.loadPaintedTexture('terrace_pavers.webp',this.terraceMaterial,1,1);
@@ -505,7 +507,7 @@ export class ArtWorld {
         }
         const a=groundHeight(near),b=groundHeight(far),w=WORLD.trackWidth/2;
         vertices.push(-w,a,near,-w,b,far,w,a,near,-w,b,far,w,b,far,w,a,near);
-        uv.push(0,near*.45,0,far*.45,2.5,near*.45,0,far*.45,2.5,far*.45,2.5,near*.45);
+        uv.push(...trackQuadUV(-w,w,near,far));
       }
     }
     if(terrainVertices.length){

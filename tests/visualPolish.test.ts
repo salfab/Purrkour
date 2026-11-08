@@ -1,9 +1,8 @@
 import {describe,expect,it} from 'vitest';
 import {
   TERRACE_TEXTURE_TILE_METRES,terraceQuadUV,jumpShadowAppearance,
-  profileFrame,speedStreakPoint,
+  profileFrame,TRACK_TEXTURE_TILE_METRES,trackQuadUV,trackRibbonUV,
 } from '../src/game/visualPolish';
-import {routePoint} from '../src/game/routeGeometry';
 
 describe('v0.17.5 mobile art pass',()=>{
   it('scales lower-terrain artwork to readable eight-metre tiles',()=>{
@@ -39,17 +38,22 @@ describe('v0.17.5 mobile art pass',()=>{
     expect(profileFrame(0,true,5)).toBe(5);
   });
 
-  it('keeps recycled yellow lines behind either branch, never in front of the runner',()=>{
-    for(const route of [null,'fish','acro'] as const){
-      for(let i=0;i<10;i++){
-        const streak=speedStreakPoint(260,.3,route,5,i,10,()=>0);
-        const at=routePoint(260,.3,route);
-        expect(Number.isFinite(streak.x)).toBe(true);
-        expect(streak.opacity).toBeGreaterThan(0);
-        expect(streak.opacity).toBeLessThan(1);
-        expect(streak.width).toBeGreaterThan(0);
-        expect(Math.hypot(streak.x-at.x,streak.z-at.z)).toBeGreaterThan(.5);
-      }
-    }
+  it('uses the same enlarged pavement tile across main road and fork preview',()=>{
+    expect(TRACK_TEXTURE_TILE_METRES).toBe(5.5);
+    const main=trackQuadUV(-2.5,2.5,288,288.5);
+    const fork=trackRibbonUV(-2.5,-2.5,2.5,2.5,288,288.5);
+    expect(fork).toEqual(main);
+    const before=trackQuadUV(-2.5,2.5,287.5,288);
+    expect(before[3]).toBe(main[1]);
+    expect(before[9]).toBe(main[1]);
+    // Each repeat spans several metres, not tiny bricks/pied-de-poule.
+    expect(main[4]-main[0]).toBeCloseTo(5/5.5);
+    expect(main[3]-main[1]).toBeCloseTo(.5/5.5);
+  });
+
+  it('does not add floating streak sprites to the route during a speed boost',()=>{
+    // Use the original painted sprite (frame 7) for the side profile.
+    // The separate extra particle emitter was removed to prevent clutter.
+    expect(profileFrame(1,true,99)).toBe(7);
   });
 });

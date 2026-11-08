@@ -330,3 +330,12 @@ Le chargement du panorama est prêt à utiliser `mediterranean_horizon_hq.jpg` �
 - **Ombre** : elle rétrécit continûment jusqu'à environ **75 %** et devient légèrement moins opaque lorsque le chat monte ; la taille revient à 100 % à la réception. Logique pure dans `visualPolish.ts`.
 - **Terrain en contrebas** : la texture `terrace_pavers.webp` n'est plus répétée plusieurs fois à chaque mètre. Les coordonnées UV utilisent désormais une échelle cohérente de **8 mètres par motif**, sans répétition supplémentaire sur le matériau, avec continuité entre les chunks et dans les fossés.
 - Tests de non-régression : limites de l'ombre, animation de profil boost (frame 7), largeur de motif et points de traînée de vitesse dans une courbe. Les sprites de profil non boostés et les poissons restent inchangés.
+
+
+### v0.17.6 — Recul sur les particules du boost et piste agrandie
+
+Le retour téléphone a montré que les traînées flottantes de la v0.17.5 rendaient le boost moins esthétique et gênaient la lisibilité de la pose du chat. **Suppression du système de 10 sprites de traits de vitesse dans le monde** : le profil utilise de nouveau uniquement **la frame boost originale du sprite kawaii (n°7, traits jaunes inclus)**. La vue arrière conserve quatre poses dédiées avec seulement deux accents dorés discrets par côté. Purr Rush et ses effets distincts ne sont pas modifiés.
+
+Les pavés de la piste centrale utilisent désormais des coordonnées UV mondiales à raison d'une répétition de la texture tous les **5,5 mètres**, au lieu de plusieurs répétitions par largeur de piste. La piste principale, la branche du Y et le raccord à 45° utilisent une seule fonction `trackRibbonUV` et le même matériau, sans rupture de texture à 288 mètres. Le terrain en contrebas conserve sa taille de motif de 8 mètres.
+
+Tests Vitest : échelle de motif, continuité des UV à 288 m, conservation de la frame boost d'origine et absence de nouveaux effets de gameplay.

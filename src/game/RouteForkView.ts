@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {groundHeight,WORLD} from './core';
+import {trackRibbonUV} from './visualPolish';
 import {ROUTE_FORK,type RouteChoice} from './routeChoices';
 import {
   ROUTE_CURVE,ROUTE_PREVIEW_END,FAKE_MERGE,
@@ -81,16 +82,11 @@ export class RouteForkView {
         a.x,a.y,a.z,b.x,b.y,b.z,c.x,c.y,c.z,
         b.x,b.y,b.z,d.x,d.y,d.z,c.x,c.y,c.z,
       );
-      // Coordinates match ArtWorld: the image is not restarted at the seam.
-      const u=(x:number):number=>(x+half)*.5;
-      const startLeft=choice===null?-half:branchRoadEdges(s,choice,half).min;
-      const startRight=choice===null?half:branchRoadEdges(s,choice,half).max;
-      const endLeft=choice===null?-half:branchRoadEdges(next,choice,half).min;
-      const endRight=choice===null?half:branchRoadEdges(next,choice,half).max;
-      uv.push(
-        u(startLeft),s*.45,u(endLeft),next*.45,u(startRight),s*.45,
-        u(endLeft),next*.45,u(endRight),next*.45,u(startRight),s*.45,
-      );
+      // The selected branch uses exactly the same material and continuous
+      // UV scale as ArtWorld after 288m: no texture change at the seam.
+      uv.push(...trackRibbonUV(
+        left.min,right.min,left.max,right.max,s,next,
+      ));
     }
     const geometry=new THREE.BufferGeometry();
     geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));

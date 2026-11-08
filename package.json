@@ -1,6 +1,6 @@
 {
   "name": "purrkour",
-  "version": "0.17.5",
+  "version": "0.17.6",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.18.3",
