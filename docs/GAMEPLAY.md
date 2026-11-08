@@ -430,3 +430,22 @@ Les volumes et les proportions se combinent avec différents crépis, volets, po
 | 5 | Éléments de Griffe | Rebord, gouttière, prise et balisage distinctif, **uniquement** quand leurs collisions et commandes existeront |
 
 **Tests ajoutés :** densité et cours ouvertes, formes variées par quartier, génération reproductible, distance entre maisons voisines sur un côté, marge devant la piste, exclusion du faux raccord et véritables surfaces inclinées partageant les maillages. Cette refonte ne modifie ni les poissons, ni le timing des obstacles mobiles, ni les commandes tactiles.
+
+
+## 21. Art pass de façades peintes — v0.18.3 (prototype à évaluer)
+
+Ce premier essai privilégie **de véritables textures raster** plutôt que le code Canvas/SVG qui dessinait auparavant les murs. Le pack de référence a été généré en cohérence avec le style chaleureux, peint à la main, des captures de concept. Quatre échantillons de crépi (crème, pêche, doré, rose) ont été extraits de cette planche et recadrés pour en faire un atlas PNG 256×256, avec **quatre cases isolées de 128×128 pixels**. L'atlas de deux toitures méditerranéennes (terre cuite et claire), au même format raster, complète le test. Ce second atlas est une texture de tuiles stylisée produite pour l'essai, et non une photographie. Il faudra juger le résultat réellement affiché sur téléphone : la qualité des échantillons source reste limitée et ils ne remplacent pas encore l'ensemble des textures de fenêtres, portes et accessoires.
+
+**Intégration :**
+- `public/assets/textures/facades_painted_v1.png` et `roofs_painted_v1.png` sont de vrais PNG, pas des SVG ni une image de fond.
+- `DistrictBuildings.loadPaintedTextures()` découpe les atlas en textures GPU indépendantes **une seule fois**, avec sRGB, clamp-to-edge et mipmaps par case pour éviter les bavures aux bords.
+- Les matériaux existants se mettent à jour dès que les images chargent. Si elles sont indisponibles, les anciens crépis et tuiles restent visibles. Un chargement tardif des anciennes textures ne peut pas rétablir par accident le rendu antérieur.
+- Les quatre quartiers utilisent des combinaisons différentes des crépis. Leurs couleurs d'ambiance restent indépendantes. Aucune nouvelle géométrie physique ou collision n'est introduite par cet art pass.
+
+**Mode d'évaluation rapide :** [Purrkour aperçu 100 m](https://salfab.github.io/Purrkour/?districtPreview=1). Avec le paramètre `districtPreview=1`, le quartier change tous les **100 m** au lieu de 325. Sans ce paramètre, la progression normale reste à **325 m**. Le simulateur d'obstacles, l'énergie, les scores, les récompenses et le trajet en Y sont inchangés ; seul le thème visuel se renouvelle plus vite.
+
+**Resserrement prudent :** les façades gagnent 35 cm vers la piste, en conservant plus d'un mètre de dégagement devant les accessoires. Il n'y a pas encore de façades grimpables : Griffe nécessitera une vraie implémentation de collisions et de signalétique.
+
+**Critère de décision sur mobile :** vérifier le caractère peint des murs, la lisibilité des fenêtres et des toits et la cohérence stylistique avec le chat. Si les panneaux texture + géométrie restent trop artificiels, passer à des **maisons illustrées en sprites 2.5D** avec seulement les hitboxes de balcons, rebords et auvents interactifs en 3D. Ne pas transformer les maisons en coûteux modèles 3D complexes.
+
+**Tests :** validité PNG et dimensions exactes, extraction 2×2/2×1 sans chevauchement, association des palettes par quartier, activation opt-in des changements à 100 m, retrait contrôlé des façades, plus tous les tests de collision et d'embranchement.

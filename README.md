@@ -175,3 +175,10 @@ La ville change maintenant de quartier tous les **325 m** pour faciliter les tes
 ## v0.18.2 — Des maisons qui ressemblent à des maisons
 
 Refonte du décor autour de la piste : les parcelles sont distribuées tous les 12 m (au lieu d'un bâtiment fixe tous les 36 m), avec de petites cours, des maisons basses et hautes et cinq silhouettes géométriques vraiment différentes. Les toits en plaques inclinées ont été remplacés par des volumes de toiture corrects ; auvents rayés, balcons et tourelles appartiennent désormais aux volumes. Ces modules partagent leur géométrie et réutilisent les textures existantes pour rester adaptés aux téléphones. La route, les collisions et le Y sont inchangés. Plan d'assets et règles de densité détaillés dans [GAMEPLAY.md](docs/GAMEPLAY.md).
+
+
+## v0.18.3 — Premier essai de façades peintes
+
+Des **atlas PNG raster peints** sont maintenant appliqués aux murs et aux toits des maisons modulaires : quatre nuances de crépi issues des références illustrées et deux variantes de tuiles stylisées. Les atlas sont recadrés dans des textures GPU séparées sans compression WebP/AVIF et remplacent les anciens matériaux après chargement. Les façades sont rapprochées de 35 cm sans envahir le couloir de jeu. Pour inspecter les quatre quartiers rapidement, utilisez **[le mode aperçu 100 m](https://salfab.github.io/Purrkour/?districtPreview=1)**, sans modifier la progression normale à 325 m.
+
+Cette première passe ne remplace pas encore les anciennes fenêtres, portes et accessoires par des illustrations nouvelles. Si l'effet reste trop générique, le prochain choix est la façade entièrement dessinée en sprite avec seulement les volumes interactifs en 3D. Voir [GAMEPLAY.md](docs/GAMEPLAY.md).
